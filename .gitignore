@@ -1,0 +1,63 @@
+# ==============================================================================
+# CodeContext-Java .gitignore
+# ==============================================================================
+
+# Gradle Build & Cache Artifacts
+.gradle/
+build/
+*/build/
+bin/
+*/bin/
+out/
+*/out/
+
+# Java Class & Log Files
+*.class
+*.log
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# IDE & Editor Configuration
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+
+# OS-Specific Metadata
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Generated Test & Analysis Output Files
+codecontext-graph.html
+*.html.tmp
+reports/
+temp_repos/
+*.sarif
+.codecontext-plan.json
+
+# Internal Development & Proprietary Roadmap Artifacts
+# (Retained locally; not published to public repositories)
+docs/*-sprints/
+docs/skills/
+docs/*-kt.md
+docs/adjustments.md
+docs/CODE_INTELLIGENCE_SURFACE_ANALYSIS.md
+docs/ui-extension.md
+docs/UI_COMPLETION_PLAN.md
+docs/UI_EXTENSION_ANALYSIS_REPORT.md
