@@ -53,11 +53,5 @@ temp_repos/
 
 # Internal Development & Proprietary Roadmap Artifacts
 # (Retained locally; not published to public repositories)
-docs/*-sprints/
-docs/skills/
-docs/*-kt.md
-docs/adjustments.md
-docs/CODE_INTELLIGENCE_SURFACE_ANALYSIS.md
-docs/ui-extension.md
-docs/UI_COMPLETION_PLAN.md
-docs/UI_EXTENSION_ANALYSIS_REPORT.md
+docs/
+
