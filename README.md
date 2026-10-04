@@ -5,7 +5,7 @@
 [![Java](https://img.shields.io/badge/Java-21%20LTS-orange.svg)](https://openjdk.org/projects/jdk/21/)
 [![Gradle](https://img.shields.io/badge/Gradle-9.2-blue.svg)](https://gradle.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Google_Gson_Report-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://raw.githack.com/abhishek94443/CodeContext-Java/main/examples/gson-architecture-report.html)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Google_Gson_Report-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://htmlpreview.github.io/?https://github.com/abhishek94443/CodeContext-Java/blob/main/examples/gson-architecture-report.html)
 
 CodeContext-Java is a deterministic codebase intelligence engine built with modern **Java 21**, **Virtual Threads**, and **JGraphT**. It parses Java repositories at line-level AST precision, builds inter-procedural directed dependency graphs, detects architectural circular loops (Tarjan SCC), calculates PageRank centrality and change blast radius, and generates interactive zero-dependency visual blueprints.
 
@@ -15,8 +15,9 @@ CodeContext-Java is a deterministic codebase intelligence engine built with mode
 
 Experience the full power of CodeContext-Java directly in your browser without installing anything or running a build:
 
-👉 **[Launch Live Google Gson Architecture Blueprint](https://raw.githack.com/abhishek94443/CodeContext-Java/main/examples/gson-architecture-report.html)**  
-*(Alternative mirror: [View on HTMLPreview](https://htmlpreview.github.io/?https://github.com/abhishek94443/CodeContext-Java/blob/main/examples/gson-architecture-report.html) | [GitHub Pages](https://abhishek94443.github.io/CodeContext-Java/))*
+👉 **[Launch Live Google Gson Architecture Blueprint](https://htmlpreview.github.io/?https://github.com/abhishek94443/CodeContext-Java/blob/main/examples/gson-architecture-report.html)**
+
+*(Opens the interactive SVG/Canvas visualization rendered directly from Google Gson repository)*
 
 ### What You Are Exploring in This Demo
 To demonstrate how CodeContext-Java analyzes real-world enterprise codebases, we ran our engine against the official public [google/gson](https://github.com/google/gson) repository (one of the world's most widely used Java libraries). 
