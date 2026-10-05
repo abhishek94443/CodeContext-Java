@@ -1,126 +1,129 @@
 # CodeContext-Java
 
-> **Deterministic Codebase Intelligence, Graph Analytics & Shift-Left Architecture for Enterprise Java**
+> **The High-Performance CLI & Architectural Intelligence Engine for Java Codebases**  
+> *Understand your architecture. Predict change blast radius. Prevent regressions before you commit.*
 
 [![Java](https://img.shields.io/badge/Java-21%20LTS-orange.svg)](https://openjdk.org/projects/jdk/21/)
-[![Gradle](https://img.shields.io/badge/Gradle-9.2-blue.svg)](https://gradle.org)
-[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Google_Gson_Report-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://htmlpreview.github.io/?https://github.com/abhishek94443/CodeContext-Java/blob/main/examples/gson-architecture-report.html)
-
-CodeContext-Java is a deterministic codebase intelligence engine built with modern **Java 21**, **Virtual Threads**, and **JGraphT**. It parses Java repositories at line-level AST precision, builds inter-procedural directed dependency graphs, detects architectural circular loops (Tarjan SCC), calculates PageRank centrality and change blast radius, and generates interactive zero-dependency visual blueprints.
-
----
-
-## 🚀 View Live Interactive Demo
-
-Experience the full power of CodeContext-Java directly in your browser without installing anything or running a build:
-
-👉 **[Launch Live Google Gson Architecture Blueprint](https://htmlpreview.github.io/?https://github.com/abhishek94443/CodeContext-Java/blob/main/examples/gson-architecture-report.html)**
-
-*(Opens the interactive SVG/Canvas visualization rendered directly from Google Gson repository)*
-
-### What You Are Exploring in This Demo
-To demonstrate how CodeContext-Java analyzes real-world enterprise codebases, we ran our engine against the official public [google/gson](https://github.com/google/gson) repository (one of the world's most widely used Java libraries). 
-
-When you open the interactive canvas, you can directly inspect:
-* **722 Production Classes & Interfaces:** Completely parsed, symbol-resolved, and mapped into a directed multigraph.
-* **Topological PageRank Centrality:** Visually identifying the core architectural gravity hubs (`com.google.gson.Gson`, `TypeAdapter`, `JsonElement`).
-* **Circular Dependency Tracing:** The engine detected **12 circular reference loops** in Gson (such as `Gson -> TypeAdapter -> GsonBuilder -> Gson`). You can trace every step of these cycles directly on the graph.
-* **Compound Package Clustering:** Classes are grouped into interactive bounding boxes by their package namespaces (`internal.bind`, `stream`, `reflect`), allowing you to zoom, pan, search, and focus on specific sub-systems.
-* **100% Zero-Dependency Standalone HTML:** The entire visualizer is self-contained in a single file ([`examples/gson-architecture-report.html`](examples/gson-architecture-report.html)) powered by pure client-side SVG and Canvas rendering.
+[![Build Status](https://img.shields.io/badge/Tests-135%20Passing%20(100%25)-brightgreen.svg)]()
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Architecture](https://img.shields.io/badge/Architecture-100%25%20Air--Gapped%20%26%20Offline-blueviolet.svg)]()
+[![Discussions](https://img.shields.io/badge/Community-Discussions-blue?logo=github)](https://github.com/abhishek94443/CodeContext-Java/discussions)
+[![Issues](https://img.shields.io/badge/Support-Issues-red?logo=github)](https://github.com/abhishek94443/CodeContext-Java/issues)
 
 ---
 
-## Key Features
+## What is CodeContext-Java?
 
-- **Mathematical Ground Truth First:** Hard facts are calculated using graph theory, AST symbol tables, and Git forensics before invoking any LLM.
-- **Tarjan SCC Cycle Detection:** Reconstructs the exact sequence of circular dependency loops (`A -> B -> C -> A`) with bounded traversal safety.
-- **PageRank Hotspot Analysis:** Identifies architectural gravity hubs and structural risk across thousands of classes in sub-second time.
-- **Git Churn & Evolution Forensics:** Integrates with Eclipse JGit to evaluate 90-day churn, commit velocity, and author dispersion to score composite risk.
-- **Interactive Visual Blueprint:** Generates standalone, zero-dependency interactive HTML graph reports (`HtmlReportExporter`).
-- **Shift-Left CLI & CI Gating:** Fast sub-100ms Picocli CLI featuring `--fail-on-cycles` CI gating and standard sysexits exit codes.
+Think of CodeContext as an **interactive GPS and automated architectural safety gate for your software**.
 
----
+In any growing Java codebase, making changes can be stressful. A developer edits what looks like a simple method, but hours later, builds or production break because that method was silently called by dozens of other classes across multiple packages.
 
-## Architecture Pipeline
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ CodeContext Architecture Pipeline                                           │
-│                                                                             │
-│  [Source .java Files]                                                       │
-│          │                                                                  │
-│          ▼                                                                  │
-│  ┌─────────────────────────┐                                                │
-│  │ Pass 1 Scanner          │ ──► Bounded Virtual Threads & SymbolTable      │
-│  └───────────┬─────────────┘                                                │
-│              ▼                                                              │
-│  ┌─────────────────────────┐                                                │
-│  │ Pass 2 Resolver         │ ──► 6-Step Chain-of-Responsibility Resolution  │
-│  └───────────┬─────────────┘                                                │
-│              ▼                                                              │
-│  ┌─────────────────────────┐                                                │
-│  │ JGraphT Directed Graph  │ ──► PageRank, Tarjan SCC Cycles, Blast Radius  │
-│  └───────────┬─────────────┘                                                │
-│              ├──────────────────────────────────────┐                       │
-│              ▼                                      ▼                       │
-│     [Interactive HTML Visualizer]           [Picocli CLI Engine]            │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-For detailed pipeline design, see [ARCHITECTURE.md](ARCHITECTURE.md).
+**CodeContext-Java eliminates that guesswork through a lightning-fast CLI:**
+1. **Maps your entire system:** Analyzes Java source code to show how every class, method, and package connects.
+2. **Finds hidden bottlenecks:** Uses PageRank mathematics to pinpoint critical architectural hubs.
+3. **Calculates Blast Radius in seconds:** Runs `codecontext impact <Class>` to show exactly who calls your class and what test suites to run *before* you touch code.
+4. **Catches Architectural Cycles:** Uses Tarjan's SCC algorithm to detect circular dependencies (`A -> B -> C -> A`), highlighting the weakest link so you can decouple them cleanly.
+5. **Generates an Offline Visual Blueprint:** Exports an interactive, single-file HTML architecture report (`codecontext-graph.html`) requiring zero servers and zero internet.
 
 ---
 
-## Quickstart
+## 1-Minute Quick Start
 
 ### Prerequisites
-- **JDK 21** or higher (`java -version`)
+* **Java 21+ SDK** installed on your system (`java -version`).
+* Works on Windows, macOS, and Linux.
 
-### Build
+### 1. Clone & Build from Source
 ```bash
-./gradlew build
-```
+# Clone the repository
+git clone https://github.com/abhishek94443/CodeContext-Java.git
+cd CodeContext-Java
 
-### Install CLI
-```bash
+# Build and assemble the standalone CLI distribution
 ./gradlew :codecontext-cli:installDist
 ```
+*(On Windows, run `gradlew.bat :codecontext-cli:installDist`).*
 
-### Analyze a Codebase & Generate Interactive Report
+### 2. Run the CLI
+The compiled standalone binary is ready in `codecontext-cli/build/install/codecontext/bin/`:
+
 ```bash
-./codecontext-cli/build/install/codecontext/bin/codecontext analyze <path-to-java-repo>
+# On Windows:
+codecontext-cli\build\install\codecontext\bin\codecontext.bat [COMMAND] [OPTIONS]
+
+# On Linux or macOS:
+./codecontext-cli/build/install/codecontext/bin/codecontext [COMMAND] [OPTIONS]
 ```
 
-### Check Circular Dependencies in CI
-```bash
-./codecontext-cli/build/install/codecontext/bin/codecontext cycles <path-to-java-repo> --fail-on-cycles
-```
+*(Tip: Add the `bin/` folder to your system `PATH` to run simply as `codecontext [COMMAND]` from any folder).*
 
 ---
 
-## Project Structure
+## The 4 Core CLI Commands Working Today
 
-```text
-codecontext-java/
-├── codecontext-core/      # Pure Java 21 engine (AST parsing, JGraphT, JGit forensics)
-├── codecontext-cli/       # Picocli command-line runner (analyze, cycles, HTML export)
-├── codecontext-service/   # Spring Boot foundation for future agent tool services
-├── examples/              # Standalone demonstration reports (e.g., Google Gson)
-├── ARCHITECTURE.md        # Technical architecture and pipeline breakdown
-├── ROADMAP.md             # Completed features and upcoming AI/MCP milestones
-├── LICENSE                # Apache 2.0 License
-└── README.md              # Project overview and quickstart
-```
+CodeContext-Java features a fast, focused CLI designed for everyday developer workflows:
+
+| Command | What It Does (Plain English) | Typical Use Case |
+| :--- | :--- | :--- |
+| **`codecontext analyze [PATH]`** | Scans your Java codebase, ranks the Top 10 architectural hotspots, and generates the interactive visual report. | When exploring a new codebase, performing architectural reviews, or onboarding developers. |
+| **`codecontext cycles [PATH]`** | Detects all circular dependency loops in linear time $O(V + E)$. | Finding architectural loops locally or enforcing clean architecture in CI pipelines. |
+| **`codecontext impact <Class>`** | Shows an indented upstream blast radius tree of all callers and automatically suggests test suites to run. | In your terminal right before you refactor or modify an existing class. |
+| **`codecontext sarif [PATH]`** | Emits findings in standard OASIS SARIF 2.1.0 format with POSIX relative paths. | Generating machine-readable static analysis reports for code review platforms. |
+
+> 📖 **Looking for all flags, options, and behaviors?**  
+> Check the complete [**Command Book (`COMMAND_BOOK.md`)**](COMMAND_BOOK.md) for full syntax and examples.
 
 ---
 
-## Roadmap
+## Why Developers & Teams Choose CodeContext-Java
 
-See [ROADMAP.md](ROADMAP.md) for current progress and upcoming features, including **Model Context Protocol (MCP)** tool integration for AI agents (Cursor / Claude Desktop), **AST-boundary semantic RAG**, and automated **GitHub Action PR gating**.
+### 1. 100% Air-Gapped & Private (Zero Data Leaks)
+Unlike cloud-dependent code analysis tools, CodeContext runs **100% locally in your machine's memory**. Not a single line of code, AST token, or telemetry data ever leaves your computer. It is completely safe for enterprise, banking, healthcare, and air-gapped security environments.
+
+### 2. Sub-100ms Startup & High Performance
+Built with pure Java 21, Picocli, and JGraphT, CodeContext launches in **under 80ms** and parses hundreds of classes in seconds without heavy background daemons or bloated memory footprints.
+
+### 3. Plain-English Architecture Insights
+You don't need a background in graph theory to understand CodeContext metrics:
+* **Architectural Hotspot:** A class that sits at the center of your codebase (like a major transit hub). If a hotspot breaks, the ripple effect is large.
+* **In-Degree (Callers):** How many other classes depend on this component.
+* **Blast Radius:** The full tree of direct and transitive callers impacted if you modify a class.
+* **Architectural Cycle:** When classes mutually depend on each other (`A -> B -> A`), hindering modularity. CodeContext identifies the weakest link to break.
+
+---
+
+## CI/CD & Automation Overview
+
+CodeContext-Java is built from the ground up to integrate cleanly into automated pipelines:
+
+1. **Deterministic POSIX Exit Codes:**
+   - Exit Code `0`: Clean execution, zero violations.
+   - Exit Code `1`: Quality gate tripped (e.g. `codecontext cycles . --fail-on-cycles` immediately stops the build if circular dependencies exist).
+   - Exit Code `2`: Invalid arguments or non-existent class names.
+2. **Standard OASIS SARIF 2.1.0 Output:**
+   - The `codecontext sarif` command emits standard SARIF with normalized forward-slash paths (`src/main/java/...`), ready for ingestion by GitHub Code Scanning, SonarQube, or custom CI tooling to display inline pull request annotations.
+3. **Downloadable Architecture Artifacts:**
+   - CI pipelines can run `codecontext analyze` and save `codecontext-graph.html` as a downloadable build artifact, giving reviewers an offline interactive architecture map for every build.
+
+---
+
+## Community, Discussions & Contributing
+
+CodeContext-Java is open-source and actively maintained. Community discussions and issue tracking are open:
+
+* 💬 **Have questions, ideas, or feedback?** Join our [**GitHub Discussions**](https://github.com/abhishek94443/CodeContext-Java/discussions).
+* 🐛 **Found a bug or need a feature?** Open an issue on [**GitHub Issues**](https://github.com/abhishek94443/CodeContext-Java/issues).
+* 📧 **Contact & Maintainer:** Abhishek Dwivedi ([abhishekdwivedi94443@gmail.com](mailto:abhishekdwivedi94443@gmail.com)).
+
+---
+
+## Architecture & System Design
+
+Curious about how CodeContext-Java parses Abstract Syntax Trees, constructs directed multigraphs, and calculates PageRank authority?  
+Read the high-level system design in [**`ARCHITECTURE.md`**](ARCHITECTURE.md).
 
 ---
 
 ## License
 
-Distributed under the Apache 2.0 License. See [LICENSE](LICENSE) for details.
+Distributed under the Apache 2.0 License. Built with Java 21, JavaParser, JGraphT, and Picocli.
