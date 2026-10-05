@@ -408,6 +408,13 @@ html { scroll-padding-top:env(safe-area-inset-top,0px); }
 html, body { height:100%; }
 body { font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); display:flex; flex-direction:column; overflow:hidden; -webkit-font-smoothing:antialiased; }
 button { font:inherit; color:inherit; cursor:pointer; }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.14) transparent; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.28); }
+aside, .method-strip, .trace-body, .lanes { scrollbar-width: none; }
+aside::-webkit-scrollbar, .method-strip::-webkit-scrollbar, .trace-body::-webkit-scrollbar, .lanes::-webkit-scrollbar { display: none; }
 .mono { font-family:"JetBrains Mono",ui-monospace,monospace; }
 .glass { background:var(--surface); backdrop-filter:blur(18px) saturate(1.4); -webkit-backdrop-filter:blur(18px) saturate(1.4); }
 .hidden { display:none !important; }
@@ -503,7 +510,7 @@ svg { display:block; width:100%; height:auto; min-width:760px; margin:0 auto; tr
 .empty { fill:var(--muted); font:13px Inter,sans-serif; text-anchor:middle; }
 
 /* Floating Zoom Dock */
-.zoom-dock { position:absolute; bottom:16px; right:16px; display:flex; gap:4px; padding:4px; border-radius:12px; border:1px solid var(--line); z-index:5; box-shadow:0 6px 18px rgba(0,0,0,.25); }
+.zoom-dock { position:absolute; bottom:16px; right:16px; display:flex; gap:4px; padding:4px; border-radius:12px; border:1px solid var(--line); z-index:5; box-shadow:0 6px 18px rgba(0,0,0,.25); transition:bottom .25s ease; }
 .zoom-dock button { width:32px; height:32px; display:grid; place-items:center; border:0; background:none; border-radius:8px; font-size:14px; font-weight:600; color:var(--muted); transition:background .15s,color .15s; }
 .zoom-dock button:hover { background:color-mix(in srgb,var(--accent) 18%,transparent); color:var(--text); }
 
@@ -554,11 +561,15 @@ svg { display:block; width:100%; height:auto; min-width:760px; margin:0 auto; tr
 
 /* Calls Lens View */
 #lens-calls { display:flex; flex-direction:column; flex:1; min-height:0; position:relative; overflow:hidden; }
-.method-strip { display:flex; gap:6px; padding:10px 16px; border-bottom:1px solid var(--line); overflow-x:auto; align-items:center; flex-wrap:wrap; background:color-mix(in srgb,var(--card) 60%,transparent); z-index:2; }
+.method-strip { display:flex; gap:6px; padding:8px 16px; border-bottom:1px solid var(--line); align-items:center; flex-wrap:wrap; background:color-mix(in srgb,var(--card) 60%,transparent); z-index:2; transition:max-height .25s ease; max-height:44px; overflow:hidden; }
+.method-strip.expanded { max-height:360px; overflow-y:auto; }
 .method-chip { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:99px; border:1px solid var(--line); background:var(--card); font-size:12px; color:var(--text); }
 .method-chip.on { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 15%,var(--card)); font-weight:600; }
 .method-chip:hover { border-color:var(--accent); }
-.trace-panel { padding:12px 16px; border-top:1px solid var(--line); background:var(--card); display:flex; flex-direction:column; gap:8px; font-size:12.5px; z-index:2; }
+.trace-panel { border-top:1px solid var(--line); background:var(--card); font-size:12.5px; z-index:2; transition:all .2s ease; }
+.trace-header { display:flex; justify-content:space-between; align-items:center; padding:9px 16px; cursor:pointer; user-select:none; }
+.trace-header:hover { background:color-mix(in srgb,var(--accent) 8%,transparent); }
+.trace-body { padding:8px 16px 14px; display:flex; flex-direction:column; gap:8px; }
 .trace-controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .narrative { margin-top:6px; padding:10px 14px; border-radius:10px; background:var(--bg); border:1px solid var(--line); font-family:"JetBrains Mono",monospace; font-size:12px; line-height:1.6; }
 
@@ -568,7 +579,9 @@ svg { display:block; width:100%; height:auto; min-width:760px; margin:0 auto; tr
 .loop-card.on { background:color-mix(in srgb,var(--hi) 10%,var(--card)); }
 .loop-card b { font-size:13px; }
 .loop-card p { font-size:12px; color:var(--muted); margin-top:3px; line-height:1.4; }
-.explain { max-width:640px; margin:0 auto; padding:0 20px 30px; font-size:13.5px; line-height:1.6; }
+#loops .stage { overflow-y:auto; display:block; padding:24px 24px 60px; }
+#ring { width:100%; max-width:720px; height:420px; margin:0 auto; display:block; flex:none; }
+.explain { max-width:720px; margin:16px auto 0; padding:0 10px 40px; font-size:13.5px; line-height:1.6; }
 .explain b { color:var(--accent); }
 
 /* ============ 8. RESPONSIVE ============ */
@@ -590,7 +603,7 @@ svg { display:block; width:100%; height:auto; min-width:760px; margin:0 auto; tr
   <nav class="tabs">
     <button data-view="home" class="on">Overview</button>
     <button data-view="map">Explore</button>
-    <button data-view="loops">Loops<em>{{SUMMARY_LOOPS}}</em></button>
+    <button data-view="loops">Cycles<em>{{SUMMARY_LOOPS}}</em></button>
   </nav>
   <div class="search">
     <i>&#9906;</i><input id="query" placeholder="Search class or method\u2026" autocomplete="off" spellcheck="false"><kbd>/</kbd>
@@ -758,12 +771,21 @@ function buildModel({ rows, aliases, edges: edgeText, loops: loopText, methods: 
 }
 
 /* ============ 4. HELPERS ============ */
+const escapeXml = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const formatMethodLabel = m => {
+  if (!m) return '()';
+  const n = m.name || '';
+  if (n === '<init>' || n.startsWith('<init')) return `new ${m.cls}()`;
+  if (n === '(init)') return '[instance init]';
+  return n.endsWith(')') ? n : `${n}()`;
+};
 const $ = id => document.getElementById(id);
 const model = buildModel(DATA);
 const state = {
   selected: null, showAll: false, trail: [], loopIndex: 0,
   lens: 'connections', hops: 3, dir: 'in', method: null,
   hideBoilerplate: true, impactFilter: 'all', traceDir: 'forward',
+  traceExpanded: false, traceTarget: null, expandMethods: false,
   zoom: 1.0, panX: 0, panY: 0, isPanning: false, startX: 0, startY: 0
 };
 
@@ -971,7 +993,7 @@ function renderCard(c) {
   const color = riskColor(c.level);
   const labels = ['Importance', 'Tangled in loops', 'Recent change', 'Single-author'];
   const loopButtons = model.loops.map((l, i) => [l, i]).filter(([l]) => l.includes(c.id)).slice(0, 4)
-    .map(([l, i]) => `<button class="btn" data-loop="${i}">Loop #${i + 1} \u00b7 ${l.length - 1} classes \u2192</button>`).join('');
+    .map(([l, i]) => `<button class="btn" data-loop="${i}">Cycle #${i + 1} \u00b7 ${l.length - 1} classes \u2192</button>`).join('');
   const pkgFull = AREAS[c.area] ? AREAS[c.area][0] : '';
   const fqcn = pkgFull && pkgFull !== 'default' ? `${pkgFull}.${c.id}` : c.id;
 
@@ -983,11 +1005,11 @@ function renderCard(c) {
     <span class="tag" style="color:${color}">${c.level} RISK</span><span class="tag" style="color:var(--accent)">${c.kind}</span>
     <h2>${c.id}</h2>
     <div class="fq mono">${fqcn}</div>
-    <p class="desc">${describe(c)}</p>
+    ${(() => { const d = describe(c); return (d && !d.startsWith('Part of the ') && !d.includes(' package.')) ? `<p class="desc">${escapeXml(d)}</p>` : ''; })()}
     
     <div class="blast-card" data-open-impact="${c.id}">
       <div class="blast-head"><b>Blast radius</b><span class="tag" style="color:${blast.bandColor}">${blast.band}</span></div>
-      <p>Changing this could affect <b>${blast.totalAffected} classes</b> (${blast.pct.toFixed(0)}%). <a href="javascript:void(0)" style="color:var(--accent)">See impact \u2192</a></p>
+      <p>Changing this could affect <b>${blast.totalAffected} classes</b> (${blast.pct.toFixed(0)}%).</p>
     </div>
 
     ${implsList.length ? `
@@ -1007,7 +1029,7 @@ function renderCard(c) {
     <ul class="facts">${factsFor(c).map(([sev, text]) => `<li><i class="dot" style="background:var(--${sev})"></i>${text}</li>`).join('')}</ul>
     <div class="bars"><div style="font-weight:600;color:var(--text)">Why this score?</div>
       ${labels.map((l, i) => `<div><span>${l}<b style="color:var(--text)">${c.factors[i].toFixed(0)}%</b></span><div class="meter"><i style="width:${c.factors[i]}%;background:var(--accent)"></i></div></div>`).join('')}</div>
-    ${loopButtons ? `<div style="font-size:12px;color:var(--muted)">In ${model.loops.filter(l => l.includes(c.id)).length} loop(s):</div>${loopButtons}` : ''}`;
+    ${loopButtons ? `<div style="font-size:12px;color:var(--muted)">Part of ${model.loops.filter(l => l.includes(c.id)).length} architectural cycle(s):</div>${loopButtons}` : ''}`;
 }
 
 function renderExplore() {
@@ -1029,6 +1051,11 @@ function renderExplore() {
   $('lens-impact').classList.toggle('hidden', state.lens !== 'impact');
   $('lens-calls').classList.toggle('hidden', state.lens !== 'calls');
   $('zoom-dock').classList.toggle('hidden', state.lens === 'impact');
+  if (state.lens === 'calls') {
+    $('zoom-dock').style.bottom = state.traceExpanded ? '185px' : '58px';
+  } else {
+    $('zoom-dock').style.bottom = '16px';
+  }
 
   $('trail').innerHTML = (state.trail.length > 1 ? '<button class="btn" data-back="1" style="margin:0">\u2190 Back</button>' : '')
     + state.trail.map((t, i) => i < state.trail.length - 1
@@ -1289,15 +1316,29 @@ function renderCallsLens(c) {
   const visibleMethods = state.hideBoilerplate ? mList.filter(m => m === currM || !isBoilerplate(m)) : mList;
   const hiddenCount = mList.length - visibleMethods.length;
 
+  const maxChips = 5;
+  const shouldCollapse = visibleMethods.length > maxChips && !state.expandMethods;
+  const chipsToDisplay = shouldCollapse ? visibleMethods.slice(0, maxChips) : visibleMethods;
+  const hiddenByCollapse = visibleMethods.length - chipsToDisplay.length;
+
+  $('method-strip').className = `method-strip ${state.expandMethods ? 'expanded' : ''}`;
   $('method-strip').innerHTML = `
-    <span style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-right:4px;">Methods:</span>
-    <button class="filter-btn ${state.hideBoilerplate ? 'on' : ''}" id="toggle-boilerplate-btn" style="margin-right:8px;">
-      ${state.hideBoilerplate ? `Hide Boilerplate (${hiddenCount})` : 'Showing All'}
-    </button>`
-    + visibleMethods.map(m => `
-      <button class="method-chip ${m === currM ? 'on' : ''}" data-method="${m.id}">
-        ${truncate(m.name, 24)}() <span class="mono" style="font-size:10px;color:var(--muted)">(${m.callers.length + m.callees.length})</span>
-      </button>`).join('');
+    <div style="display:flex;align-items:center;gap:6px;width:100%;margin-bottom:6px;flex:none;">
+      <span style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-right:4px;">Methods:</span>
+      <button class="filter-btn ${state.hideBoilerplate ? 'on' : ''}" id="toggle-boilerplate-btn">
+        ${state.hideBoilerplate ? `Hide Boilerplate (${hiddenCount})` : 'Showing All'}
+      </button>
+      ${visibleMethods.length > maxChips ? `
+        <button class="filter-btn ${state.expandMethods ? 'on' : ''}" id="toggle-expand-strip-btn" style="margin-left:auto;">
+          ${state.expandMethods ? '▲ Collapse' : `▼ +${hiddenByCollapse} More`}
+        </button>` : ''}
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%;">
+      ${chipsToDisplay.map(m => `
+        <button class="method-chip ${m === currM ? 'on' : ''}" data-method="${m.id}">
+          ${escapeXml(truncate(formatMethodLabel(m), 24))} <span class="mono" style="font-size:10px;color:var(--muted)">(${m.callers.length + m.callees.length})</span>
+        </button>`).join('')}
+    </div>`;
 
   // 3-Column Method Graph
   const W = 230, H = 44, GAP = 14, X = [30, 385, 740];
@@ -1316,8 +1357,8 @@ function renderCallsLens(c) {
     <g class="node ${extra}" data-method-open="${m.id}" transform="translate(${x},${y})" tabindex="0" role="button">
       <rect width="${W}" height="${H}" rx="12"/>
       <rect x="10" y="9" width="4" height="${H - 18}" rx="2" style="fill:${riskColor(m.level)}"/>
-      <text x="24" y="19">${truncate(m.name + '()', 22)}</text>
-      <text class="sub" x="24" y="34">${truncate(m.cls, 24)}</text>
+      <text x="24" y="19">${escapeXml(truncate(formatMethodLabel(m), 22))}</text>
+      <text class="sub" x="24" y="34">${escapeXml(truncate(m.cls, 24))}</text>
       ${label ? `<text class="count" x="${W - 12}" y="19">${label}</text>` : ''}
     </g>`;
 
@@ -1354,53 +1395,125 @@ function renderCallsLens(c) {
     + (right.items.length ? '' : `<text class="empty" x="${X[2] + W / 2}" y="${height / 2}">Calls no other methods</text>`);
   applyTransform();
 
-  // Trace Path UI Section
-  const otherMethods = Object.values(model.methods).filter(m => m !== currM && m.cls !== currM.cls).slice(0, 150);
-  const optionsHtml = otherMethods.map(m => `<option value="${m.id}">${m.id}()</option>`).join('');
-
+  // Collapsible Trace Path Drawer with Autocomplete Search
+  const targetLabel = state.traceTarget ? formatMethodLabel(state.traceTarget) : '';
   $('trace-panel').innerHTML = `
-    <div class="trace-controls">
-      <span>Trace path from <b class="mono" style="color:var(--text)">${currM.name}()</b> to:</span>
-      <select id="trace-target" style="padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:12px;outline:none;">
-        ${optionsHtml}
-      </select>
-      <div class="seg">
-        <button class="${state.traceDir === 'forward' ? 'on' : ''}" id="trace-fwd-btn">Forward (Calls)</button>
-        <button class="${state.traceDir === 'reverse' ? 'on' : ''}" id="trace-rev-btn">Reverse (Callers)</button>
-      </div>
-      <button class="btn" id="trace-btn" style="margin:0">Find path</button>
+    <div class="trace-header mono" id="trace-toggle-btn">
+      <span style="font-weight:600;display:flex;align-items:center;gap:6px;">
+        <span>⚘</span> Trace Execution Path ${state.traceTarget ? `<span class="mono" style="color:var(--accent);font-size:12px;">→ ${escapeXml(targetLabel)}</span>` : ''}
+      </span>
+      <span id="trace-toggle-icon" style="font-size:11px;color:var(--muted);">${state.traceExpanded ? '▲ Hide' : '▼ Expand'}</span>
     </div>
-    <div id="trace-result"></div>`;
+    <div class="trace-body" id="trace-body" style="display:${state.traceExpanded ? 'flex' : 'none'};">
+      <div class="trace-controls">
+        <span>From <b class="mono" style="color:var(--text)">${escapeXml(formatMethodLabel(currM))}</b> to:</span>
+        <div style="position:relative;flex:1;max-width:320px;">
+          <input type="text" id="trace-search-input" placeholder="Search destination method (e.g. write, fromJson)..." value="${escapeXml(targetLabel)}" style="width:100%;padding:5px 10px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-family:inherit;font-size:12px;outline:none;" autocomplete="off">
+          <div id="trace-search-results" class="glass" style="display:none;position:absolute;left:0;right:0;bottom:100%;margin-bottom:4px;max-height:220px;overflow-y:auto;border-radius:8px;border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:10;padding:4px;"></div>
+        </div>
+        <div class="seg">
+          <button class="${state.traceDir === 'forward' ? 'on' : ''}" id="trace-fwd-btn">Forward (Calls)</button>
+          <button class="${state.traceDir === 'reverse' ? 'on' : ''}" id="trace-rev-btn">Reverse (Callers)</button>
+        </div>
+        <button class="filter-btn on" id="trace-btn" style="padding:5px 14px;">Find path</button>
+      </div>
+      <div id="trace-result"></div>
+    </div>`;
 
   $('toggle-boilerplate-btn').onclick = () => {
     state.hideBoilerplate = !state.hideBoilerplate;
     renderCallsLens(state.selected);
   };
+
+  const expandStripBtn = $('toggle-expand-strip-btn');
+  if (expandStripBtn) {
+    expandStripBtn.onclick = () => {
+      state.expandMethods = !state.expandMethods;
+      renderCallsLens(state.selected);
+    };
+  }
+
+  $('trace-toggle-btn').onclick = () => {
+    state.traceExpanded = !state.traceExpanded;
+    $('trace-body').style.display = state.traceExpanded ? 'flex' : 'none';
+    $('trace-toggle-icon').textContent = state.traceExpanded ? '▲ Hide' : '▼ Expand';
+    $('zoom-dock').style.bottom = state.traceExpanded ? '185px' : '58px';
+  };
+
+  const searchInput = $('trace-search-input');
+  const resultsDiv = $('trace-search-results');
+
+  searchInput.oninput = () => {
+    const q = searchInput.value.trim().toLowerCase();
+    if (!q) { resultsDiv.style.display = 'none'; return; }
+    const tokens = q.split(/[\s.]+/).filter(Boolean);
+    const matches = Object.values(model.methods).filter(m => {
+      if (m === currM) return false;
+      const mName = (m.name || '').toLowerCase();
+      const mCls = (m.cls || '').toLowerCase();
+      const mId = (m.id || '').toLowerCase();
+      return tokens.every(tok => mName.includes(tok) || mCls.includes(tok) || mId.includes(tok));
+    }).slice(0, 8);
+    if (!matches.length) { resultsDiv.style.display = 'none'; return; }
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = matches.map(m => `
+      <button class="search-item" data-pick-trace="${m.id}" style="display:block;width:100%;text-align:left;padding:6px 10px;border:0;background:none;border-radius:6px;font-size:12px;color:var(--text);cursor:pointer;">
+        <b>${escapeXml(formatMethodLabel(m))}</b> <span class="mono" style="color:var(--muted);font-size:10.5px;">(${m.cls})</span>
+      </button>`).join('');
+  };
+
+  resultsDiv.onclick = e => {
+    const btn = e.target.closest('[data-pick-trace]');
+    if (!btn) return;
+    const m = model.methods[btn.dataset.pickTrace];
+    if (m) {
+      state.traceTarget = m;
+      searchInput.value = formatMethodLabel(m);
+      resultsDiv.style.display = 'none';
+      executeTrace();
+    }
+  };
+
   $('trace-fwd-btn').onclick = () => { state.traceDir = 'forward'; $('trace-fwd-btn').classList.add('on'); $('trace-rev-btn').classList.remove('on'); };
   $('trace-rev-btn').onclick = () => { state.traceDir = 'reverse'; $('trace-rev-btn').classList.add('on'); $('trace-fwd-btn').classList.remove('on'); };
 
-  $('trace-btn').onclick = () => {
-    const targetId = $('trace-target').value;
-    const targetM = model.methods[targetId];
-    if (!targetM) return;
-    const path = findMethodPath(currM, targetM, state.traceDir);
+  const executeTrace = () => {
+    if (!state.traceTarget) {
+      const q = searchInput.value.trim().toLowerCase();
+      if (q) {
+        const tokens = q.split(/[\s.]+/).filter(Boolean);
+        state.traceTarget = Object.values(model.methods).find(m => {
+          if (m === currM) return false;
+          const mName = (m.name || '').toLowerCase();
+          const mCls = (m.cls || '').toLowerCase();
+          const mId = (m.id || '').toLowerCase();
+          return tokens.every(tok => mName.includes(tok) || mCls.includes(tok) || mId.includes(tok));
+        });
+      }
+    }
+    if (!state.traceTarget) {
+      $('trace-result').innerHTML = '<span style="color:var(--hi);font-size:12.5px;padding-top:4px;display:block">Please select or type a destination method.</span>';
+      return;
+    }
+    const path = findMethodPath(currM, state.traceTarget, state.traceDir);
     if (!path) {
-      $('trace-result').innerHTML = '<span style="color:var(--hi);font-size:12.5px;padding-top:4px;display:block">No call path found in this direction.</span>';
+      $('trace-result').innerHTML = `<span style="color:var(--hi);font-size:12.5px;padding-top:4px;display:block">No call path found between ${escapeXml(formatMethodLabel(currM))} and ${escapeXml(formatMethodLabel(state.traceTarget))} in this direction.</span>`;
     } else {
       let narrative = `<div class="narrative"><b>Shortest Path (${path.length - 1} calls):</b><br/>`;
       path.forEach((step, idx) => {
         if (idx === 0) {
-          narrative += `1. <b style="color:var(--text)">${step.method.cls}.${step.method.name}()</b> [Source]<br/>`;
+          narrative += `1. <b style="color:var(--text)">${escapeXml(step.method.cls)}.${escapeXml(formatMethodLabel(step.method))}</b> [Source]<br/>`;
         } else {
-          narrative += `&nbsp;&nbsp;&nbsp;└── calls <b style="color:var(--text)">${step.method.cls}.${step.method.name}()</b> at line ${step.line}<br/>`;
+          narrative += `&nbsp;&nbsp;&nbsp;→ calls <b style="color:var(--text)">${escapeXml(step.method.cls)}.${escapeXml(formatMethodLabel(step.method))}</b> at line ${step.line}<br/>`;
         }
       });
       narrative += '</div>';
       $('trace-result').innerHTML = narrative;
     }
   };
-}
 
+  $('trace-btn').onclick = executeTrace;
+}
 // Method BFS Path Finder (Forward or Reverse)
 function findMethodPath(startM, targetM, direction = 'forward') {
   const queue = [[{ method: startM, line: 0 }]];
@@ -1426,19 +1539,19 @@ function findMethodPath(startM, targetM, direction = 'forward') {
 /* ============ 14. VIEW: LOOPS ============ */
 function renderLoops() {
   if (!model.loops.length) {
-    $('loop-list').innerHTML = `<h2>Circular dependencies</h2>
-      <p class="desc" style="font-size:13px;color:var(--muted)">No circular dependencies found in this codebase.</p>`;
+    $('loop-list').innerHTML = `<h2>Architectural Cycles</h2>
+      <p class="desc" style="font-size:13px;color:var(--muted)">No architectural cycles (Circular dependencies) found in this codebase.</p>`;
     $('ring').innerHTML = '';
     $('explain').innerHTML = '<p>Your architecture is completely acyclic.</p>';
     return;
   }
-  $('loop-list').innerHTML = `<h2>Circular dependencies</h2>
-    <p class="desc" style="font-size:13px;color:var(--muted)">Each card is a chain of classes that eventually depends on itself. Pick one to see it.</p>`
+  $('loop-list').innerHTML = `<h2>Architectural Cycles</h2>
+    <p class="desc" style="font-size:12.5px;color:var(--muted);line-height:1.45;">Components that depend on each other through a directed path that eventually returns to the starting component. These may indicate strong coupling and are worth reviewing. <!-- Circular dependencies analysis --></p>`
     + model.loops.map((l, i) => `<button class="loop-card ${i === state.loopIndex ? 'on' : ''}" data-loop="${i}">
-        <b>Loop #${i + 1} \u00b7 ${l.length - 1} classes</b><p>${l.slice(0, -1).map(n => truncate(n, 18)).join(' \u2192 ')} \u2192 \u2026</p></button>`).join('');
+        <b>Cycle #${i + 1} · ${l.length - 1} classes</b><p>${l.slice(0, -1).map(n => truncate(n, 18)).join(' → ')} → …</p></button>`).join('');
 
   const names = model.loops[state.loopIndex].slice(0, -1), k = names.length;
-  const W = 190, H = 38, cx = 350, cy = 235;
+  const W = 190, H = 38, cx = 350, cy = 210;
   const radius = k === 2 ? 110 : 165, stretch = k === 2 ? 1.6 : 1.15;
   const pts = names.map((id, i) => {
     const a = -Math.PI / 2 + i * 2 * Math.PI / k;
@@ -1452,15 +1565,82 @@ function renderLoops() {
     svg += `<line x1="${p.x + ux * inset + ox}" y1="${p.y + uy * inset + oy}" x2="${q.x - ux * inset + ox}" y2="${q.y - uy * inset + oy}" style="stroke:var(--hi)" stroke-width="2.2" marker-end="url(#arrow-loop)"/>`;
   });
   pts.forEach(p => svg += `<g class="node" data-open="${p.id}" transform="translate(${p.x - W / 2},${p.y - H / 2})" tabindex="0" role="button"><rect width="${W}" height="${H}" rx="11"/><text x="${W / 2}" y="24" style="text-anchor:middle">${truncate(p.id, 24)}</text></g>`);
-  $('ring').setAttribute('viewBox', '0 0 700 470');
+  $('ring').setAttribute('viewBox', '0 0 700 420');
   $('ring').innerHTML = svg;
 
-  $('explain').innerHTML = `
-    <p><b>What this means.</b> ${names.join(' \u2192 ')} \u2192 ${names[0]}. Each class needs the next one, and the last needs the first, so none can be changed or tested in isolation.</p>
-    <p style="margin-top:10px"><b>Why it matters.</b> A change in any one of them can ripple around the whole loop.</p>
-    <p style="margin-top:10px"><b>How to fix it.</b> Pull the shared part out into a small interface, or let one class depend on an abstraction instead of the other class directly. Click any box to inspect it.</p>`;
-}
+  const loopFull = model.loops[state.loopIndex];
+  const steps = [];
+  let minCalls = Infinity, weakestIdx = 0;
 
+  for (let i = 0; i < loopFull.length - 1; i++) {
+    const fromId = loopFull[i], toId = loopFull[i + 1];
+    const fromCls = model.byId[fromId], toCls = model.byId[toId];
+    const edge = fromCls ? fromCls.callees.find(e => e.to.id === toId) : null;
+    const callsCount = edge ? edge.calls : 1;
+
+    const invocations = [];
+    if (fromCls && fromCls.methods) {
+      fromCls.methods.forEach(m => {
+        m.callees.forEach(e => {
+          if (e.to.cls === toId) {
+            invocations.push({ fromMethod: m.name, toMethod: e.to.name, line: e.line });
+          }
+        });
+      });
+    }
+
+    if (callsCount < minCalls) {
+      minCalls = callsCount;
+      weakestIdx = i;
+    }
+
+    steps.push({ fromId, toId, calls: callsCount, invocations });
+  }
+
+  const breakdownHtml = `
+    <div style="margin-top:20px;border-top:1px solid var(--line);padding-top:18px;">
+      <div style="font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+        <span>⚙</span> Architectural Cycle Breakdown (${steps.length} Links):
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${steps.map((st, i) => {
+          const isWeakest = (i === weakestIdx);
+          const border = isWeakest ? 'border:1px solid color-mix(in srgb,var(--hi) 60%,var(--line));background:color-mix(in srgb,var(--hi) 8%,var(--card));' : 'border:1px solid var(--line);background:var(--card);';
+          return `
+            <div style="padding:12px 14px;border-radius:12px;${border}">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-weight:600;font-size:13px;color:var(--text);">
+                  Step ${i + 1}: <b style="color:var(--accent)">${escapeXml(st.fromId)}</b> → <b style="color:var(--in)">${escapeXml(st.toId)}</b>
+                </span>
+                <span class="mono" style="font-size:11.5px;color:var(--muted);">${st.calls} ${st.calls === 1 ? 'call' : 'calls'}</span>
+              </div>
+              ${isWeakest ? `
+                <div style="display:inline-block;padding:2px 8px;border-radius:6px;background:color-mix(in srgb,var(--hi) 20%,transparent);color:var(--hi);font-size:11px;font-weight:600;margin-bottom:6px;">
+                  ⚠ Weakest Link — Recommended Break Point (${st.calls} ${st.calls === 1 ? 'call' : 'calls'})
+                </div>` : ''}
+              ${st.invocations.length ? `
+                <div style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:4px;">
+                  ${st.invocations.slice(0, 4).map(inv => `
+                    <div>• <b class="mono" style="color:var(--text)">${escapeXml(formatMethodLabel({ name: inv.fromMethod, cls: st.fromId }))}</b> calls <b class="mono" style="color:var(--text)">${escapeXml(formatMethodLabel({ name: inv.toMethod, cls: st.toId }))}</b> ${inv.line ? `at Line ${inv.line}` : ''}</div>
+                  `).join('')}
+                  ${st.invocations.length > 4 ? `<div style="font-size:11px;color:var(--muted);padding-left:12px;">+ ${st.invocations.length - 4} more call sites</div>` : ''}
+                </div>` : `
+                <div style="font-size:12px;color:var(--muted);font-style:italic;">Type dependency (field or parameter reference)</div>
+              `}
+            </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:14px;padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-size:12.5px;line-height:1.5;color:var(--muted);">
+        <b style="color:var(--text);">Architectural Decoupling Advice:</b><br/>
+        The cycle completes because <b style="color:var(--text)">${escapeXml(steps[weakestIdx].fromId)}</b> connects to <b style="color:var(--text)">${escapeXml(steps[weakestIdx].toId)}</b> with only <b>${steps[weakestIdx].calls} ${steps[weakestIdx].calls === 1 ? 'call' : 'calls'}</b>. Decoupling this single link (e.g. by introducing an interface or event listener) will permanently eliminate this cyclic coupling for all ${names.length} classes.
+      </div>
+    </div>`;
+
+  $('explain').innerHTML = `
+    <p><b>What this means.</b> ${names.join(' → ')} → ${names[0]}. These components are mutually dependent through a circular directed path.</p>
+    <p style="margin-top:10px"><b>Architectural evaluation.</b> Mutual coupling can be intentional (e.g., bilateral protocols or visitor patterns), but tightly coupled cycles hinder isolated testing and independent refactoring.</p>
+    ${breakdownHtml}`;
+}
 /* ============ 15. EVENTS & INTERACTION ============ */
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-open],[data-view],[data-loop],[data-more],[data-back],[data-lens],[data-open-impact],[data-lens-jump],[data-dir],[data-filter],[data-method],[data-method-open]');
@@ -1508,7 +1688,7 @@ $('zoom-reset').onclick = resetZoom;
 // Canvas Pan & Mousewheel Zoom
 const stageEl = $('stage');
 stageEl.addEventListener('wheel', e => {
-  if (state.lens === 'impact') return; // Natural scroll for impact lanes
+  if (state.lens === 'impact' || e.target.closest('.method-strip, .trace-panel, #trace-search-results, #trace-result')) return;
   e.preventDefault();
   if (e.deltaY < 0) zoomIn();
   else zoomOut();
