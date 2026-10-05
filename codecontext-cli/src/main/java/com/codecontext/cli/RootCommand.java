@@ -9,7 +9,9 @@ import picocli.CommandLine.Command;
         mixinStandardHelpOptions = true,
         subcommands = {
                 AnalyzeCommand.class,
-                CyclesCommand.class
+                CyclesCommand.class,
+                ImpactCommand.class,
+                SarifCommand.class
         }
 )
 public class RootCommand implements Runnable {
