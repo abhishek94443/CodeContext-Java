@@ -23,8 +23,8 @@ public class BoundedPass1Scanner {
     private final JavaParserDeclarationVisitor visitor;
 
     public BoundedPass1Scanner() {
-        int permits = Math.max(4, Runtime.getRuntime().availableProcessors() * 4);
-        this.semaphore = new Semaphore(permits);
+        int concurrentPermits = Math.max(4, Runtime.getRuntime().availableProcessors() * 4);
+        this.semaphore = new Semaphore(concurrentPermits);
         this.visitor = new JavaParserDeclarationVisitor();
     }
 

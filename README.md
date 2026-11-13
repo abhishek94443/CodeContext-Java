@@ -59,16 +59,24 @@ codecontext-cli\build\install\codecontext\bin\codecontext.bat [COMMAND] [OPTIONS
 
 ---
 
-## The 4 Core CLI Commands Working Today
+## Core CLI Commands
 
-CodeContext-Java features a fast, focused CLI designed for everyday developer workflows:
+CodeContext-Java features a fast, focused CLI designed for everyday developer workflows and security analysis:
 
+### Architectural Intelligence
 | Command | What It Does (Plain English) | Typical Use Case |
 | :--- | :--- | :--- |
 | **`codecontext analyze [PATH]`** | Scans your Java codebase, ranks the Top 10 architectural hotspots, and generates the interactive visual report. | When exploring a new codebase, performing architectural reviews, or onboarding developers. |
 | **`codecontext cycles [PATH]`** | Detects all circular dependency loops in linear time $O(V + E)$. | Finding architectural loops locally or enforcing clean architecture in CI pipelines. |
 | **`codecontext impact <Class>`** | Shows an indented upstream blast radius tree of all callers and automatically suggests test suites to run. | In your terminal right before you refactor or modify an existing class. |
 | **`codecontext sarif [PATH]`** | Emits findings in standard OASIS SARIF 2.1.0 format with POSIX relative paths. | Generating machine-readable static analysis reports for code review platforms. |
+
+### Cryptographic Intelligence & Security Analysis
+| Command | What It Does (Plain English) | Typical Use Case |
+| :--- | :--- | :--- |
+| **`codecontext security scan [PATH]`** | Scans for cryptographic vulnerabilities (ECB mode, weak digests, deprecated ciphers, obsolete TLS) with terminal, SARIF, JSON, or interactive HTML dashboard output (`--format html`). | Automated security audits, pull request checks, and security dashboard generation. |
+| **`codecontext crypto inventory [PATH]`** | Discovers and normalizes all cryptographic algorithms, primitives, and modes used across the repository into tabular text or JSON. | Cryptographic asset discovery, auditing cryptographic agility, and compliance reviews. |
+| **`codecontext crypto cbom [PATH]`** | Generates an official CycloneDX 1.6 Cryptography Bill of Materials (`crypto-bom.json`) compliant with the official CycloneDX 1.6 schema. | Supply chain security, post-quantum readiness assessments, and cryptographic BOM compliance. |
 
 > 📖 **Looking for all flags, options, and behaviors?**  
 > Check the complete [**Command Book (`COMMAND_BOOK.md`)**](COMMAND_BOOK.md) for full syntax and examples.

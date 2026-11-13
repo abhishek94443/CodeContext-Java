@@ -47,6 +47,15 @@ public class Pass2InvocationResolver {
     }
 
     public ParsedCompilationUnit resolve(Path path, String sourceCode) {
+        return resolve(path, sourceCode, null, null);
+    }
+
+    public ParsedCompilationUnit resolve(
+            Path path,
+            String sourceCode,
+            com.codecontext.core.security.SecurityAnalysisEngine securityEngine,
+            List<com.codecontext.core.finding.Finding> findingSink
+    ) {
         ParserConfiguration config = new ParserConfiguration();
         config.setLanguageLevel(ParserConfiguration.LanguageLevel.BLEEDING_EDGE);
         JavaParser parser = new JavaParser(config);
@@ -69,6 +78,10 @@ public class Pass2InvocationResolver {
         }
 
         CompilationUnit cu = parseResult.getResult().get();
+        if (securityEngine != null && findingSink != null) {
+            findingSink.addAll(securityEngine.analyzeCompilationUnit(path, sourceCode, cu, Optional.of(symbolLookup)));
+        }
+
         String packageName = cu.getPackageDeclaration()
                 .map(PackageDeclaration::getNameAsString)
                 .orElse("");

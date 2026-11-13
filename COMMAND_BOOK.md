@@ -59,12 +59,18 @@ Whenever CodeContext finishes running, it returns an **exit code** (a standard i
 
 ## 3. Currently Supported Commands
 
-Today, CodeContext supports four core commands:
+CodeContext supports seven production commands organized into two intelligence suites:
 
-1. **[`codecontext analyze`](#31-codecontext-analyze)** — Complete codebase architecture scan, PageRank hotspot calculation, and offline interactive HTML Visual Blueprint generation.
+### Architectural Intelligence Suite
+1. **[`codecontext analyze`](#31-codecontext-analyze)** — Complete codebase architecture scan, PageRank hotspot calculation, and offline interactive HTML Visual Blueprint generation (`codecontext-graph.html`).
 2. **[`codecontext cycles`](#32-codecontext-cycles)** — Fast Tarjan SCC cycle detector and CI/CD quality gate to catch circular dependency loops.
 3. **[`codecontext impact`](#33-codecontext-impact)** — Depth-bounded blast radius tree analysis with automated regression test-suite recommendations.
 4. **[`codecontext sarif`](#34-codecontext-sarif)** — Standard OASIS SARIF 2.1.0 exporter with POSIX relative paths for native GitHub Actions PR code-scanning annotations.
+
+### Security & Cryptographic Intelligence Suite
+5. **[`codecontext security scan`](#35-codecontext-security-scan)** — Cryptographic misuse and vulnerability scanner supporting terminal table, SARIF 2.1.0, JSON, or standalone interactive HTML security dashboard (`codecontext-security.html`).
+6. **[`codecontext crypto inventory`](#36-codecontext-crypto-inventory)** — Cryptographic asset discovery and normalization engine outputting tabular summaries or structured JSON.
+7. **[`codecontext crypto cbom`](#37-codecontext-crypto-cbom)** — Official CycloneDX 1.6 Cryptography Bill of Materials (CBOM) generator validated against official schema.
 
 ---
 
@@ -239,6 +245,107 @@ codecontext sarif [PATH] [OPTIONS]
 
 ---
 
+### 3.5. `codecontext security scan`
+
+#### What Does It Do?
+The `security scan` command runs static cryptographic vulnerability rules and API discovery across your Java repository:
+1. **Rule Detection Engine**: Evaluates built-in rules for cryptographic misuses:
+   - `CC-CRYPTO-001` (HIGH): Insecure ECB Mode Encryption (`AES/ECB/PKCS5Padding`, CWE-327).
+   - `CC-CRYPTO-002` (HIGH / MEDIUM): Legacy Insecure Cipher (DES, RC2, RC4, or deprecated 3DES/DESede).
+   - `CC-CRYPTO-003` (MEDIUM): Weak Message Digest Usage (MD2, MD5, SHA-1, CWE-328).
+   - `CC-CRYPTO-004` (MEDIUM): Provider-Dependent Default Cipher Transformation (bare `Cipher.getInstance("AES")`).
+   - `CC-TLS-001` (HIGH): Obsolete TLS Protocol Selection (`SSLv2`, `SSLv3`, `TLSv1`, `TLSv1.1`, CWE-326).
+2. **Limited Expression Resolution**: Statically evaluates compile-time constants, final local variables, and linear assignments to determine exact transformation arguments.
+3. **Multiple Output Formats**:
+   - `table` (Default): Colored high-contrast terminal table with exact file, line, rule, and CWE indicators.
+   - `html`: Enterprise-grade, standalone, 100% offline interactive dashboard (`codecontext-security.html`) with embedded SVG charts, multi-facet filtering, sorting, expandable finding/evidence drawers, and XSS protection.
+   - `sarif`: OASIS SARIF 2.1.0 output with line/column precision for GitHub Code Scanning PR annotations.
+   - `json`: Machine-readable findings list for custom tool integrations.
+4. **CI/CD Quality Gate**: Pass `--fail-on-findings` to break CI builds if any security issues are discovered.
+
+#### Command Syntax:
+```bash
+codecontext security scan [PATH] [OPTIONS]
+```
+
+#### Available Options & Flags:
+| Option / Flag | Type | Default Value | Plain English Description |
+| :--- | :---: | :---: | :--- |
+| `[PATH]` | Argument | `.` *(Current Directory)* | Repository root directory to scan. |
+| `-o`, `--output <FILE>` | File Path | *(auto-named by format)* | Target output file (e.g. `codecontext-security.html`, `security.sarif`, `findings.json`). |
+| `--format <FMT>` | String | `table` | Output format: `table`, `html`, `sarif`, or `json`. Auto-inferred if `-o` has `.html` or `.sarif`. |
+| `--fail-on-findings` | Flag | `false` | **CI Gate:** Returns exit code `1` if one or more security findings are detected. |
+| `--include-tests` | Flag | `false` | Scans test source files (e.g. `src/test/java`) in addition to main sources. |
+| `--no-color` | Flag | `false` | Disables ANSI color escapes in terminal output. |
+| `--demo-rule` | Flag | `false` | Enables the internal demonstration rule (`DEMO001`) for test verification. |
+
+---
+
+#### What Happens: With vs. Without Options
+
+##### 1. `--format html` vs `--format sarif` vs Default Table
+* **Default (`codecontext security scan .`):** Prints a summary table of findings to your terminal, including Rule ID, Name, Severity, Location, Confidence, and CWE. Exits with `0` unless `--fail-on-findings` is set.
+* **HTML Dashboard (`codecontext security scan . --format html -o codecontext-security.html`):** Writes a complete self-contained HTML report. Open it directly in Chrome, Firefox, Safari, or Edge without any local web server or internet connection.
+* **SARIF Export (`codecontext security scan . --format sarif -o security.sarif`):** Emits standard SARIF 2.1.0 with exact source coordinates ready for GitHub Actions `upload-sarif`.
+
+##### 2. `--fail-on-findings` (The Security CI Gate)
+* **Without `--fail-on-findings`:** Displays findings and returns exit code `0` (clean execution).
+* **With `--fail-on-findings`:** If 0 findings exist, returns exit code `0`. If 1+ findings are detected, prints failure summary and returns exit code `1` (tripping your CI pipeline).
+
+---
+
+### 3.6. `codecontext crypto inventory`
+
+#### What Does It Do?
+The `crypto inventory` command scans the codebase and builds a **Canonical Cryptographic Asset Inventory**:
+1. Normalizes all JCA/JSSE API usages (`Cipher`, `MessageDigest`, `Signature`, `Mac`, `KeyAgreement`, `KeyGenerator`, `KeyPairGenerator`, `SecureRandom`, `SSLContext`).
+2. Groups identical cryptographic configurations into unified assets while preserving every distinct call site coordinate.
+3. Differentiates distinct modes and paddings (e.g. `AES/GCM/NoPadding` vs `AES/CBC/PKCS5Padding`).
+4. Tracks dynamic and unresolved argument expressions cleanly as `UNKNOWN` assets with failure explanations rather than guessing key lengths.
+5. Emits summary metrics: total observations, unique assets, resolved assets, unresolved usages, and family counts.
+
+#### Command Syntax:
+```bash
+codecontext crypto inventory [PATH] [OPTIONS]
+```
+
+#### Available Options & Flags:
+| Option / Flag | Type | Default Value | Plain English Description |
+| :--- | :---: | :---: | :--- |
+| `[PATH]` | Argument | `.` *(Current Directory)* | Repository root directory to inspect. |
+| `-o`, `--output <FILE>` | File Path | `null` *(Console)* | Target output file (automatically uses JSON format if ending in `.json`). |
+| `--format <FMT>` | String | `text` | Output format: `text` (human-readable table) or `json` (structured data). |
+| `--include-tests` | Flag | `false` | Includes test directories in the inventory. |
+| `--no-color` | Flag | `false` | Disables ANSI coloring in terminal output. |
+
+---
+
+### 3.7. `codecontext crypto cbom`
+
+#### What Does It Do?
+The `crypto cbom` command exports your cryptographic asset inventory into an official **CycloneDX 1.6 Cryptography Bill of Materials (CBOM)** JSON document:
+1. **Official Specification Compliance**: Follows the CycloneDX 1.6 normative standard (`bom-1.6.schema.json`).
+2. **Native Cryptographic Properties**: Emits `type: "cryptographic-asset"`, `cryptoProperties`, `algorithmProperties`, `primitive` (`hash`, `drbg`, `block-cipher`, `stream-cipher`, etc.), `mode` (`gcm`, `cbc`, `ecb`), and `padding` (`pkcs5`, `raw`, `oaep`).
+3. **Occurrence Evidence**: Embeds concrete file paths and 1-based source lines in `evidence.occurrences`.
+4. **Component Dependency Graph**: Automatically generates the top-level dependency relationship connecting the application component to all cryptographic assets.
+5. **Supply Chain Security**: Direct plug-and-play compatibility with enterprise SBOM/CBOM catalog tools and post-quantum migration tracking pipelines.
+
+#### Command Syntax:
+```bash
+codecontext crypto cbom [PATH] [OPTIONS]
+```
+
+#### Available Options & Flags:
+| Option / Flag | Type | Default Value | Plain English Description |
+| :--- | :---: | :---: | :--- |
+| `[PATH]` | Argument | `.` *(Current Directory)* | Repository root directory to inspect. |
+| `-o`, `--output <FILE>` | File Path | `crypto-bom.json` | Destination path for the generated CycloneDX 1.6 JSON file. |
+| `--include-tests` | Flag | `false` | Includes test directories in the CBOM. |
+
+---
+
+---
+
 ## 4. Real-World CI/CD Automation (Working Today)
 
 Because `codecontext` adheres to standard exit codes and outputs standard SARIF, you can integrate it into your continuous integration pipelines today.
@@ -332,5 +439,11 @@ When reading CodeContext outputs in the terminal or in `codecontext-graph.html`,
 | Suggest test suites to run for impacted code | `codecontext impact <ClassName> --suggest-tests` | `0` |
 | Get blast radius as machine JSON | `codecontext impact <ClassName> --json` | `0` |
 | Generate SARIF report for GitHub PR annotations | `codecontext sarif . --output results.sarif` | `0` |
+| Scan repository for cryptographic vulnerabilities | `codecontext security scan .` | `0` *(or `1` with `--fail-on-findings`)* |
+| Generate interactive HTML security dashboard | `codecontext security scan . --format html -o codecontext-security.html` | `0` |
+| Export security findings in SARIF 2.1.0 format | `codecontext security scan . --format sarif -o security.sarif` | `0` |
+| Display cryptographic asset inventory table in terminal | `codecontext crypto inventory .` | `0` |
+| Export cryptographic asset inventory as JSON | `codecontext crypto inventory . --format json -o inventory.json` | `0` |
+| Generate CycloneDX 1.6 CBOM for compliance/audit | `codecontext crypto cbom . -o crypto-bom.json` | `0` |
 
 *(As new commands are added in upcoming sprints, they will be documented in this Command Book).*

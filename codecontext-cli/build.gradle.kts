@@ -7,6 +7,12 @@ application {
     applicationName = "codecontext"
 }
 
+tasks.named<JavaExec>("run") {
+    // When executing via gradle :codecontext-cli:run, default workingDir to the root project directory
+    // so relative paths like '.' resolve to the repository root rather than codecontext-cli/
+    workingDir = rootProject.projectDir
+}
+
 dependencies {
     implementation(project(":codecontext-core"))
     implementation("info.picocli:picocli:4.7.6")
@@ -16,6 +22,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testImplementation("org.assertj:assertj-core:3.26.0")
+    testImplementation("com.networknt:json-schema-validator:1.5.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
