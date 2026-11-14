@@ -13,7 +13,11 @@ import picocli.CommandLine.Command;
                 ImpactCommand.class,
                 SarifCommand.class,
                 SecurityCommand.class,
-                CryptoCommand.class
+                CryptoCommand.class,
+                TraceCommand.class,
+                DiffImpactCommand.class,
+                PrepareCommand.class,
+                VerifyCommand.class
         }
 )
 public class RootCommand implements Runnable {

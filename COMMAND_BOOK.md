@@ -502,3 +502,119 @@ When reading CodeContext outputs in the terminal or in `codecontext-graph.html`,
 | Export PQC migration report with blast radius as JSON | `codecontext crypto pqc . --format json -o pqc-report.json` | `0` |
 
 *(As new commands are added in upcoming sprints, they will be documented in this Command Book).*
+
+---
+
+
+
+---
+
+## 4. Real-World CI/CD Automation (Working Today)
+
+Because `codecontext` adheres to standard exit codes and outputs standard SARIF, you can integrate it into your continuous integration pipelines today.
+
+### Example: GitHub Actions Workflow (`.github/workflows/architecture-check.yml`)
+
+This production-ready workflow runs on every pull request:
+1. Breaks the build if any new architectural cycle was introduced (`cycles --fail-on-cycles`).
+2. Generates the interactive HTML Visual Blueprint and saves it as a downloadable CI artifact (`analyze`).
+3. Emits SARIF 2.1.0 and posts inline code warnings directly on the GitHub PR diff (`sarif`).
+
+```yaml
+name: Architecture Governance Check
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  codecontext-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build CodeContext CLI
+        run: ./gradlew :codecontext-cli:installDist
+
+      # 1. Quality Gate: Fails the build if circular dependencies exist
+      - name: Enforce Zero Circular Dependencies
+        run: ./codecontext-cli/build/install/codecontext/bin/codecontext cycles . --fail-on-cycles
+
+      # 2. Generate Interactive Architecture Blueprint Report
+      - name: Generate Architecture Blueprint Report
+        run: ./codecontext-cli/build/install/codecontext/bin/codecontext analyze . --output ./build/reports
+
+      # 3. Upload Visual HTML Report as CI Artifact
+      - name: Upload Architecture Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: codecontext-architecture-blueprint
+          path: ./build/reports/codecontext-graph.html
+
+      # 4. Generate SARIF and post inline PR annotations
+      - name: Generate SARIF Findings
+        run: ./codecontext-cli/build/install/codecontext/bin/codecontext sarif . --output codecontext.sarif
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: codecontext.sarif
+```
+
+---
+
+## 5. Guide for Repository Readers: Understanding Architecture Metrics
+
+When reading CodeContext outputs in the terminal or in `codecontext-graph.html`, here is what the technical metrics mean:
+
+| Metric | Plain English Meaning | Why It Matters to Engineers |
+| :--- | :--- | :--- |
+| **In-Degree (Afferent Coupling)** | The number of other classes that directly call or import this class. | High in-degree means many components depend on you. Changes here can cause widespread ripple effects. |
+| **Out-Degree (Efferent Coupling)** | The number of external classes this class depends on. | High out-degree means this class has many responsibilities and is vulnerable to changes in its dependencies. |
+| **PageRank Authority** | A recursive mathematical score indicating how central a class is. It measures not just *how many* classes depend on it, but *how important* those callers are. | Identifies hidden architectural bottlenecks. A class with moderate in-degree that is called by the application's core controllers gets a very high PageRank score. |
+| **Blast Radius** | The total set of components (direct + transitive callers) impacted if you modify this class. | Tells you the true scope of testing required before deploying a refactoring. |
+| **Architectural Cycle** | A circular path of dependencies (`A -> B -> C -> A`). | Mutual dependencies make independent testing and library extraction impossible. CodeContext highlights the weakest link to break the cycle. |
+
+---
+
+## 6. Summary Cheat Sheet
+
+| I Want To... | Exact Command To Run | Exit Code on Success |
+| :--- | :--- | :---: |
+| See all available commands & options | `codecontext --help` | `0` |
+| Check the version | `codecontext --version` | `0` |
+| Scan project & generate interactive HTML report | `codecontext analyze .` | `0` |
+| Save HTML report in a custom folder | `codecontext analyze . --output /path/to/folder` | `0` |
+| Get architecture statistics in machine JSON | `codecontext analyze . --json` | `0` |
+| Run quietly (print only the report path) | `codecontext analyze . -q` | `0` |
+| List all circular dependencies without failing | `codecontext cycles .` | `0` |
+| Break CI if circular dependencies exist | `codecontext cycles . --fail-on-cycles` | `0` *(or `1` if cycles exist)* |
+| Check blast radius before touching a class | `codecontext impact <ClassName>` | `0` |
+| Suggest test suites to run for impacted code | `codecontext impact <ClassName> --suggest-tests` | `0` |
+| Get blast radius as machine JSON | `codecontext impact <ClassName> --json` | `0` |
+| Generate SARIF report for GitHub PR annotations | `codecontext sarif . --output results.sarif` | `0` |
+| Trace shortest call chain between two classes | `codecontext trace <From> <To>` | `0` |
+| Cap call chain search hops | `codecontext trace <From> <To> --max-hops 5` | `0` |
+| Analyze PR blast radius & check cycle regression | `codecontext diff-impact origin/main` | `0` *(or `1` on cycles)* |
+| Save PR blast radius summary to Markdown file | `codecontext diff-impact origin/main -o pr-summary.md` | `0` *(or `1` on cycles)* |
+| Synthesize advisory EARS change safety contract | `codecontext prepare --target <ClassName>` | `0` |
+| Verify working tree changes against plan scope | `codecontext verify --plan .codecontext-plan.json` | `0` *(or `1` on breach)* |
+| Scan repository for cryptographic vulnerabilities | `codecontext security scan .` | `0` *(or `1` with `--fail-on-findings`)* |
+| Generate interactive HTML security dashboard | `codecontext security scan . --format html -o codecontext-security.html` | `0` |
+| Export security findings in SARIF 2.1.0 format | `codecontext security scan . --format sarif -o security.sarif` | `0` |
+| Display cryptographic asset inventory table in terminal | `codecontext crypto inventory .` | `0` |
+| Export cryptographic asset inventory as JSON | `codecontext crypto inventory . --format json -o inventory.json` | `0` |
+| Generate CycloneDX 1.6 CBOM for compliance/audit | `codecontext crypto cbom . -o crypto-bom.json` | `0` |
+| Run Post-Quantum Cryptography (PQC) assessment table | `codecontext crypto pqc .` | `0` |
+| Export PQC migration report with blast radius as JSON | `codecontext crypto pqc . --format json -o pqc-report.json` | `0` |
+
+*(All 12 commands listed above are 100% implemented, tested, and active in CodeContext v2.0).*

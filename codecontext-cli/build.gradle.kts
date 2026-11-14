@@ -23,6 +23,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testImplementation("org.assertj:assertj-core:3.26.0")
     testImplementation("com.networknt:json-schema-validator:1.5.1")
+    testImplementation("org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -32,9 +33,9 @@ tasks.startScripts {
         if (winScript.exists()) {
             val javaCheck = """
 @rem Check standard JDK 21 location first if current JAVA_HOME is incompatible (NFR-S3.1-01)
-if exist "C:\Program Files\Java\jdk-21\bin\java.exe" (
-    set "JAVA_HOME=C:\Program Files\Java\jdk-21"
-    set "JAVA_EXE=C:\Program Files\Java\jdk-21\bin\java.exe"
+if exist "C:\\Program Files\\Java\\jdk-21\\bin\\java.exe" (
+    set "JAVA_HOME=C:\\Program Files\\Java\\jdk-21"
+    set "JAVA_EXE=C:\\Program Files\\Java\\jdk-21\\bin\\java.exe"
     goto execute
 )
 """
