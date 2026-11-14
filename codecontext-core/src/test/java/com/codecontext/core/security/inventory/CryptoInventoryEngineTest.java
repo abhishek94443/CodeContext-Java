@@ -94,6 +94,7 @@ class CryptoInventoryEngineTest {
         assertThat(asset.isResolved()).isFalse();
         assertThat(asset.name()).isEqualTo("UNKNOWN-CIPHER");
         assertThat(asset.algorithmFamily()).isEqualTo("UNKNOWN");
+        assertThat(asset.confidence()).isEqualTo(AnalysisConfidence.LOW);
         assertThat(asset.usages()).hasSize(1);
         assertThat(asset.usages().get(0).originalArgument()).isEqualTo("config.getMode()");
 
@@ -187,6 +188,21 @@ class CryptoInventoryEngineTest {
         assertThat(assetUsage.enclosingClass()).contains("com.example.SecurityService");
         assertThat(assetUsage.enclosingMethod()).contains("hashAuthToken");
         assertThat(assetUsage.confidence()).isEqualTo(AnalysisConfidence.HIGH);
+    }
+
+    @Test
+    @DisplayName("Classifies asymmetric RSA cipher as PUBLIC_KEY_ENCRYPTION primitive type")
+    void testRsaAsymmetricCipherClassification() {
+        Path file = Path.of("src/App.java");
+        CryptoApiUsage usage = createUsage(file, 10, 5, CryptoApiOwner.CIPHER, "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
+
+        CryptoInventory inventory = engine.buildInventory(List.of(usage), Path.of("."));
+
+        assertThat(inventory.assets()).hasSize(1);
+        CryptoAsset asset = inventory.assets().get(0);
+        assertThat(asset.primitiveType()).isEqualTo(CryptoPrimitiveType.PUBLIC_KEY_ENCRYPTION);
+        assertThat(asset.algorithmFamily()).isEqualTo("RSA");
+        assertThat(asset.isResolved()).isTrue();
     }
 
     private CryptoApiUsage createUsage(Path file, int line, int col, CryptoApiOwner owner, String rawAlgo) {

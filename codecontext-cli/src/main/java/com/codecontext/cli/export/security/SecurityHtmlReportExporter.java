@@ -7,6 +7,8 @@ import com.codecontext.core.model.SourceRange;
 import com.codecontext.core.security.inventory.CryptoAsset;
 import com.codecontext.core.security.inventory.CryptoAssetUsage;
 import com.codecontext.core.security.inventory.CryptoInventory;
+import com.codecontext.core.security.pqc.PqcAssessmentReport;
+import com.codecontext.core.security.pqc.PqcAssetAssessment;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -64,6 +66,13 @@ public class SecurityHtmlReportExporter {
         long lowCount = payload.analysisResult().findings().stream()
                 .filter(f -> f.severity() == FindingSeverity.LOW || f.severity() == FindingSeverity.INFO)
                 .count();
+
+        int pqcVulnerableCount = payload.pqcReport().map(PqcAssessmentReport::quantumVulnerableCount).orElse(0);
+        int pqcImpactedCount = payload.pqcReport().map(PqcAssessmentReport::quantumImpactedCount).orElse(0);
+        int pqcClassicallyWeakCount = payload.pqcReport().map(PqcAssessmentReport::classicallyWeakCount).orElse(0);
+        int pqcSafeCount = payload.pqcReport().map(PqcAssessmentReport::quantumSafeCount).orElse(0);
+        int pqcUnknownCount = payload.pqcReport().map(PqcAssessmentReport::unknownOrUnresolvedCount).orElse(0);
+        int pqcAffectedClassesCount = payload.pqcReport().map(PqcAssessmentReport::totalAffectedClassesInBlastRadius).orElse(0);
 
         CryptoInventory inv = payload.cryptoInventory();
 
@@ -238,6 +247,13 @@ public class SecurityHtmlReportExporter {
         .badge-LOW, .badge-INFO { background-color: rgba(59, 130, 246, 0.2); color: var(--low); border: 1px solid var(--low); }
         .badge-clean { background-color: rgba(16, 185, 129, 0.2); color: var(--clean); border: 1px solid var(--clean); }
         .badge-unknown { background-color: rgba(100, 116, 139, 0.2); color: var(--unknown); border: 1px solid var(--unknown); }
+        .badge-QUANTUM_VULNERABLE { background-color: rgba(239, 68, 68, 0.2); color: var(--critical); border: 1px solid var(--critical); }
+        .badge-QUANTUM_IMPACTED { background-color: rgba(245, 158, 11, 0.2); color: var(--medium); border: 1px solid var(--medium); }
+        .badge-CLASSICALLY_WEAK { background-color: rgba(217, 70, 239, 0.2); color: #d946ef; border: 1px solid #d946ef; }
+        .badge-QUANTUM_SAFE { background-color: rgba(16, 185, 129, 0.2); color: var(--clean); border: 1px solid var(--clean); }
+        .badge-REVIEW_REQUIRED { background-color: rgba(245, 158, 11, 0.2); color: var(--medium); border: 1px solid var(--medium); }
+        .badge-PRIORITY_UNDETERMINED { background-color: rgba(100, 116, 139, 0.2); color: var(--unknown); border: 1px solid var(--unknown); }
+        .badge-UNKNOWN { background-color: rgba(100, 116, 139, 0.2); color: var(--unknown); border: 1px solid var(--unknown); }
         .detail-row { display: none; background-color: #0b1120; }
         .detail-row.expanded { display: table-row; }
         .detail-box {
@@ -346,11 +362,12 @@ public class SecurityHtmlReportExporter {
 
     <!-- NAVIGATION TABS -->
     <nav class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('tab-findings')">Security Findings ({{TOTAL_FINDINGS}})</button>
-        <button class="tab-btn" onclick="switchTab('tab-inventory')">Cryptographic Inventory ({{INVENTORY_ASSETS_COUNT}})</button>
-        <button class="tab-btn" onclick="switchTab('tab-visualizations')">Visualizations</button>
-        <button class="tab-btn" onclick="switchTab('tab-unresolved')">Unresolved Observations ({{UNRESOLVED_COUNT}})</button>
-        <button class="tab-btn" onclick="switchTab('tab-limitations')">Analysis Limitations</button>
+        <button class="tab-btn active" onclick="switchTab('tab-findings', this)">Security Findings ({{TOTAL_FINDINGS}})</button>
+        <button class="tab-btn" onclick="switchTab('tab-inventory', this)">Cryptographic Inventory ({{INVENTORY_ASSETS_COUNT}})</button>
+        <button class="tab-btn" onclick="switchTab('tab-pqc', this)">PQC Migration ({{PQC_VULNERABLE_COUNT}})</button>
+        <button class="tab-btn" onclick="switchTab('tab-visualizations', this)">Visualizations</button>
+        <button class="tab-btn" onclick="switchTab('tab-unresolved', this)">Unresolved Observations ({{UNRESOLVED_COUNT}})</button>
+        <button class="tab-btn" onclick="switchTab('tab-limitations', this)">Analysis Limitations</button>
     </nav>
 
     <!-- SECTION B: FINDINGS TAB -->
@@ -419,6 +436,76 @@ public class SecurityHtmlReportExporter {
         </div>
     </div>
 
+    <!-- SECTION PQC: POST-QUANTUM CRYPTOGRAPHY MIGRATION TAB -->
+    <div id="tab-pqc" class="tab-content">
+        <div class="grid-overview" style="margin-bottom: 20px;">
+            <div class="card">
+                <div class="card-label">Quantum Vulnerable</div>
+                <div class="card-value" style="color: var(--critical);">{{PQC_VULNERABLE_COUNT}}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Quantum Impacted</div>
+                <div class="card-value" style="color: var(--medium);">{{PQC_IMPACTED_COUNT}}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Classically Weak</div>
+                <div class="card-value" style="color: #d946ef;">{{PQC_CLASSICALLY_WEAK_COUNT}}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Quantum Safe (PQC)</div>
+                <div class="card-value" style="color: var(--clean);">{{PQC_SAFE_COUNT}}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Affected Caller Classes</div>
+                <div class="card-value" style="color: #38bdf8;">{{PQC_AFFECTED_CLASSES_COUNT}}</div>
+            </div>
+        </div>
+
+        <div class="controls-bar">
+            <input type="text" id="pqc-search" class="search-input" placeholder="Search by Asset Name, Purpose, NIST Target, or Caller Class..." oninput="renderPqc()">
+            <select id="pqc-category-filter" class="filter-select" onchange="renderPqc()">
+                <option value="ALL">All Categories</option>
+                <option value="PQC_MIGRATION_CANDIDATE">PQC Migration Candidates</option>
+                <option value="CLASSICAL_REMEDIATION">Classical Remediation</option>
+                <option value="QUANTUM_CONSIDERATION">Modern Symmetric/Hash Considerations</option>
+                <option value="UNKNOWN_OR_UNRESOLVED">Unknown / Unresolved</option>
+            </select>
+            <select id="pqc-exposure-filter" class="filter-select" onchange="renderPqc()">
+                <option value="ALL">All Exposure Levels</option>
+                <option value="QUANTUM_VULNERABLE">Quantum Vulnerable (Shor)</option>
+                <option value="QUANTUM_IMPACTED">Quantum Impacted (Grover/BHT)</option>
+                <option value="CLASSICALLY_WEAK">Classically Weak / Broken</option>
+                <option value="QUANTUM_SAFE">Quantum Safe (NIST PQC)</option>
+                <option value="UNKNOWN">Unknown Exposure</option>
+            </select>
+            <select id="pqc-priority-filter" class="filter-select" onchange="renderPqc()">
+                <option value="ALL">All Priorities</option>
+                <option value="REVIEW_REQUIRED">Review Required</option>
+                <option value="CRITICAL">Critical</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+                <option value="PRIORITY_UNDETERMINED">Priority Undetermined</option>
+            </select>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th onclick="sortPqc('name')">Asset / Algorithm</th>
+                        <th onclick="sortPqc('exposureLevel')">Exposure Level</th>
+                        <th onclick="sortPqc('purpose')">Cryptographic Purpose</th>
+                        <th onclick="sortPqc('priority')">Priority</th>
+                        <th>Target NIST Standard</th>
+                        <th>Direct / Transitive Blast Radius</th>
+                    </tr>
+                </thead>
+                <tbody id="pqc-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- SECTION D: VISUALIZATIONS TAB -->
     <div id="tab-visualizations" class="tab-content">
         <div class="charts-grid">
@@ -429,6 +516,14 @@ public class SecurityHtmlReportExporter {
             <div class="chart-card">
                 <div class="chart-title">Cryptographic Family Distribution</div>
                 <div id="chart-families"></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">PQC Quantum Exposure Breakdown</div>
+                <div id="chart-pqc-exposure"></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">PQC Migration Priority Breakdown</div>
+                <div id="chart-pqc-priority"></div>
             </div>
             <div class="chart-card">
                 <div class="chart-title">Top Files by Finding Count</div>
@@ -483,12 +578,15 @@ public class SecurityHtmlReportExporter {
         const payload = JSON.parse(document.getElementById('security-payload').textContent);
         let currentFindingsSort = { key: 'severity', asc: false };
 
-        function switchTab(tabId) {
+        function switchTab(tabId, btn) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) { targetTab.classList.add('active'); }
+            const activeBtn = btn || (typeof event !== 'undefined' && event && event.target ? event.target : null);
+            if (activeBtn && activeBtn.classList) { activeBtn.classList.add('active'); }
             if (tabId === 'tab-visualizations') { renderCharts(); }
+            if (tabId === 'tab-pqc') { renderPqc(); }
         }
 
         function renderFindings() {
@@ -783,6 +881,86 @@ public class SecurityHtmlReportExporter {
             renderFamilyChart();
             renderTopFilesChart();
             renderResolutionRatioChart();
+            renderPqcExposureChart();
+            renderPqcPriorityChart();
+        }
+
+        function renderPqcExposureChart() {
+            const container = document.getElementById('chart-pqc-exposure');
+            if (!container) return;
+            container.innerHTML = '';
+            if (!payload.pqc || !payload.pqc.summary || !payload.pqc.summary.exposureBreakdown) {
+                container.textContent = 'No PQC assessment data available.';
+                container.style.color = 'var(--text-muted)';
+                return;
+            }
+            const data = [
+                { label: 'Quantum Vulnerable', val: payload.pqc.summary.quantumVulnerable || 0, color: 'var(--critical)' },
+                { label: 'Quantum Impacted', val: payload.pqc.summary.quantumImpacted || 0, color: 'var(--medium)' },
+                { label: 'Quantum Safe (PQC)', val: payload.pqc.summary.quantumSafe || 0, color: 'var(--clean)' },
+                { label: 'Unknown Exposure', val: payload.pqc.summary.unknown || 0, color: 'var(--unknown)' }
+            ];
+            const max = Math.max(...data.map(d => d.val), 1);
+            data.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'bar-chart-row';
+                const label = document.createElement('div');
+                label.className = 'bar-chart-label';
+                label.textContent = item.label;
+                const track = document.createElement('div');
+                track.className = 'bar-chart-track';
+                const fill = document.createElement('div');
+                fill.className = 'bar-chart-fill';
+                fill.style.width = ((item.val / max) * 100) + '%';
+                fill.style.backgroundColor = item.color;
+                track.appendChild(fill);
+                const valDiv = document.createElement('div');
+                valDiv.className = 'bar-chart-val';
+                valDiv.textContent = item.val;
+                row.appendChild(label);
+                row.appendChild(track);
+                row.appendChild(valDiv);
+                container.appendChild(row);
+            });
+        }
+
+        function renderPqcPriorityChart() {
+            const container = document.getElementById('chart-pqc-priority');
+            if (!container) return;
+            container.innerHTML = '';
+            if (!payload.pqc || !payload.pqc.summary) {
+                container.textContent = 'No PQC assessment data available.';
+                container.style.color = 'var(--text-muted)';
+                return;
+            }
+            const data = [
+                { label: 'Critical Priority', val: payload.pqc.summary.criticalPriority || 0, color: 'var(--critical)' },
+                { label: 'High Priority', val: payload.pqc.summary.highPriority || 0, color: 'var(--high)' },
+                { label: 'Medium Priority', val: payload.pqc.summary.mediumPriority || 0, color: 'var(--medium)' },
+                { label: 'Low / Info Priority', val: payload.pqc.summary.lowPriority || 0, color: 'var(--low)' }
+            ];
+            const max = Math.max(...data.map(d => d.val), 1);
+            data.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'bar-chart-row';
+                const label = document.createElement('div');
+                label.className = 'bar-chart-label';
+                label.textContent = item.label;
+                const track = document.createElement('div');
+                track.className = 'bar-chart-track';
+                const fill = document.createElement('div');
+                fill.className = 'bar-chart-fill';
+                fill.style.width = ((item.val / max) * 100) + '%';
+                fill.style.backgroundColor = item.color;
+                track.appendChild(fill);
+                const valDiv = document.createElement('div');
+                valDiv.className = 'bar-chart-val';
+                valDiv.textContent = item.val;
+                row.appendChild(label);
+                row.appendChild(track);
+                row.appendChild(valDiv);
+                container.appendChild(row);
+            });
         }
 
         function renderSeverityChart() {
@@ -960,9 +1138,260 @@ public class SecurityHtmlReportExporter {
             container.appendChild(rowUnres);
         }
 
+        let currentPqcSort = { key: 'priority', asc: false };
+
+        function sortPqc(key) {
+            if (currentPqcSort.key === key) {
+                currentPqcSort.asc = !currentPqcSort.asc;
+            } else {
+                currentPqcSort.key = key;
+                currentPqcSort.asc = true;
+            }
+            renderPqc();
+        }
+
+        function renderPqc() {
+            if (!payload.pqc || !payload.pqc.assessments) return;
+            const query = (document.getElementById('pqc-search') ? document.getElementById('pqc-search').value : '').toLowerCase().trim();
+            const catFilter = document.getElementById('pqc-category-filter') ? document.getElementById('pqc-category-filter').value : 'ALL';
+            const expFilter = document.getElementById('pqc-exposure-filter') ? document.getElementById('pqc-exposure-filter').value : 'ALL';
+            const prioFilter = document.getElementById('pqc-priority-filter') ? document.getElementById('pqc-priority-filter').value : 'ALL';
+
+            const tbody = document.getElementById('pqc-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            let filtered = payload.pqc.assessments.filter(a => {
+                if (catFilter !== 'ALL' && a.category !== catFilter) return false;
+                if (expFilter !== 'ALL' && a.exposureLevel !== expFilter) return false;
+                if (prioFilter !== 'ALL' && a.priority !== prioFilter) return false;
+                if (query) {
+                    const match = a.name.toLowerCase().includes(query)
+                        || a.algorithmFamily.toLowerCase().includes(query)
+                        || a.purpose.toLowerCase().includes(query)
+                        || (a.categoryDisplayName && a.categoryDisplayName.toLowerCase().includes(query))
+                        || (a.recommendation && a.recommendation.targetStandard.toLowerCase().includes(query))
+                        || (a.blastRadius && a.blastRadius.directDependentClasses && a.blastRadius.directDependentClasses.some(c => c.toLowerCase().includes(query)))
+                        || (a.blastRadius && a.blastRadius.transitiveDependentClasses && a.blastRadius.transitiveDependentClasses.some(c => c.toLowerCase().includes(query)));
+                    if (!match) return false;
+                }
+                return true;
+            });
+
+            filtered.sort((a, b) => {
+                let vA = a[currentPqcSort.key] || '';
+                let vB = b[currentPqcSort.key] || '';
+                if (currentPqcSort.key === 'priority') {
+                    const ranks = { 'CRITICAL': 5, 'HIGH': 4, 'REVIEW_REQUIRED': 3, 'MEDIUM': 2, 'LOW': 1, 'INFO': 0, 'PRIORITY_UNDETERMINED': 0 };
+                    vA = ranks[a.priority] ?? 0;
+                    vB = ranks[b.priority] ?? 0;
+                } else if (currentPqcSort.key === 'exposureLevel') {
+                    const ranks = { 'QUANTUM_VULNERABLE': 4, 'CLASSICALLY_WEAK': 3, 'QUANTUM_IMPACTED': 2, 'UNKNOWN': 1, 'QUANTUM_SAFE': 0 };
+                    vA = ranks[a.exposureLevel] ?? 0;
+                    vB = ranks[b.exposureLevel] ?? 0;
+                }
+                return currentPqcSort.asc ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1);
+            });
+
+            if (filtered.length === 0) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 6;
+                td.textContent = 'No cryptographic assets match the selected PQC criteria.';
+                td.style.textAlign = 'center';
+                td.style.color = 'var(--text-muted)';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+                return;
+            }
+
+            filtered.forEach((a, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'clickable';
+                tr.onclick = () => toggleDetail('pqc-detail-' + idx);
+
+                const tdName = document.createElement('td');
+                const nameDiv = document.createElement('strong');
+                nameDiv.textContent = a.name;
+                const catDiv = document.createElement('div');
+                catDiv.style.fontSize = '11px';
+                catDiv.style.fontWeight = 'bold';
+                catDiv.style.color = a.category === 'PQC_MIGRATION_CANDIDATE' ? 'var(--critical)' :
+                                     (a.category === 'CLASSICAL_REMEDIATION' ? '#d946ef' :
+                                     (a.category === 'QUANTUM_CONSIDERATION' ? 'var(--medium)' : 'var(--unknown)'));
+                catDiv.textContent = a.categoryDisplayName || a.category;
+                const famDiv = document.createElement('div');
+                famDiv.style.color = 'var(--text-muted)';
+                famDiv.style.fontSize = '11px';
+                famDiv.textContent = 'Family: ' + a.algorithmFamily + ' | ' + a.primitiveType;
+                tdName.appendChild(nameDiv);
+                tdName.appendChild(catDiv);
+                tdName.appendChild(famDiv);
+
+                const tdExp = document.createElement('td');
+                const badgeExp = document.createElement('span');
+                badgeExp.className = 'badge badge-' + a.exposureLevel;
+                badgeExp.textContent = a.exposureLevel.replace(/_/g, ' ');
+                tdExp.appendChild(badgeExp);
+
+                const tdPurp = document.createElement('td');
+                tdPurp.textContent = a.purpose.replace(/_/g, ' ');
+
+                const tdPrio = document.createElement('td');
+                const badgePrio = document.createElement('span');
+                badgePrio.className = 'badge badge-' + a.priority;
+                badgePrio.textContent = a.priority;
+                tdPrio.appendChild(badgePrio);
+
+                const tdRec = document.createElement('td');
+                tdRec.textContent = a.recommendation ? a.recommendation.targetStandard : '-';
+
+                const tdBr = document.createElement('td');
+                const br = a.blastRadius || { directDependentClasses: [], transitiveOnlyDependentClasses: [], maxCallDepth: 0 };
+                const directCount = br.totalDirectDependents ?? (br.directDependentClasses ? br.directDependentClasses.length : 0);
+                const transOnlyCount = br.totalTransitiveOnlyDependents ?? (br.transitiveOnlyDependentClasses ? br.transitiveOnlyDependentClasses.length : 0);
+                const utilMarker = br.isSharedUtilityUsage ? ' *' : '';
+                tdBr.textContent = directCount + ' dir / ' + transOnlyCount + ' trans-only (depth ' + br.maxCallDepth + ')' + utilMarker;
+
+                tr.appendChild(tdName);
+                tr.appendChild(tdExp);
+                tr.appendChild(tdPurp);
+                tr.appendChild(tdPrio);
+                tr.appendChild(tdRec);
+                tr.appendChild(tdBr);
+                tbody.appendChild(tr);
+
+                // Expandable Detail Row
+                const trDetail = document.createElement('tr');
+                trDetail.id = 'pqc-detail-' + idx;
+                trDetail.className = 'detail-row';
+                const tdDetail = document.createElement('td');
+                tdDetail.colSpan = 6;
+
+                const detailBox = document.createElement('div');
+                detailBox.className = 'detail-box';
+
+                // Assessment Category & Strategic Scope
+                const catTitle = document.createElement('div');
+                catTitle.className = 'detail-section-title';
+                catTitle.textContent = 'Assessment Category & Strategic Scope';
+                const catContent = document.createElement('div');
+                catContent.style.color = 'var(--text-main)';
+                catContent.textContent = (a.categoryDisplayName || a.category) + (a.category === 'QUANTUM_CONSIDERATION' ? ' (Modern cryptographic primitive; NOT a mandatory PQC replacement candidate. Maintain modern baseline or consider key length hardening).' : '');
+                detailBox.appendChild(catTitle);
+                detailBox.appendChild(catContent);
+
+                // Organizational Migration Review Status
+                const orgTitle = document.createElement('div');
+                orgTitle.className = 'detail-section-title';
+                orgTitle.style.marginTop = '6px';
+                orgTitle.textContent = 'Organizational Migration Review Status';
+                const orgContent = document.createElement('div');
+                orgContent.style.fontSize = '12px';
+                orgContent.style.color = 'var(--text-muted)';
+                orgContent.textContent = 'Review Status: ' + a.priority + '. Migration timeline and business criticality must be determined by organizational data confidentiality horizons, forward-secrecy requirements, and threat model.';
+                detailBox.appendChild(orgTitle);
+                detailBox.appendChild(orgContent);
+
+                // Threat Assessment
+                const threatTitle = document.createElement('div');
+                threatTitle.className = 'detail-section-title';
+                threatTitle.textContent = 'Quantum Threat Assessment';
+                const threatContent = document.createElement('div');
+                threatContent.textContent = a.threatSummary;
+                threatContent.style.color = 'var(--text-main)';
+                detailBox.appendChild(threatTitle);
+                detailBox.appendChild(threatContent);
+
+                // NIST Guidance
+                if (a.recommendation) {
+                    const recTitle = document.createElement('div');
+                    recTitle.className = 'detail-section-title';
+                    recTitle.textContent = 'NIST Post-Quantum Migration Recommendation (' + a.recommendation.standardFamily + ')';
+                    const recContent = document.createElement('div');
+                    recContent.textContent = a.recommendation.nistGuidanceRationale;
+
+                    const stratTitle = document.createElement('div');
+                    stratTitle.className = 'detail-section-title';
+                    stratTitle.style.marginTop = '6px';
+                    stratTitle.textContent = 'Transition Strategy & Standards Reference';
+                    const stratContent = document.createElement('div');
+                    stratContent.textContent = a.recommendation.transitionStrategy + ' [' + a.recommendation.fipsReference + ']';
+                    stratContent.style.color = '#38bdf8';
+
+                    detailBox.appendChild(recTitle);
+                    detailBox.appendChild(recContent);
+                    detailBox.appendChild(stratTitle);
+                    detailBox.appendChild(stratContent);
+                }
+
+                // Blast Radius Callers & Semantics Note
+                if (br.reachabilitySemanticsNote) {
+                    const noteTitle = document.createElement('div');
+                    noteTitle.className = 'detail-section-title';
+                    noteTitle.style.marginTop = '6px';
+                    noteTitle.textContent = 'Reachability Semantics:';
+                    const noteBox = document.createElement('div');
+                    noteBox.style.fontSize = '12px';
+                    noteBox.style.color = br.isSharedUtilityUsage ? 'var(--medium)' : 'var(--text-muted)';
+                    noteBox.textContent = br.reachabilitySemanticsNote;
+                    detailBox.appendChild(noteTitle);
+                    detailBox.appendChild(noteBox);
+                }
+
+                if (br.directDependentClasses && br.directDependentClasses.length > 0) {
+                    const brTitle = document.createElement('div');
+                    brTitle.className = 'detail-section-title';
+                    brTitle.style.marginTop = '6px';
+                    brTitle.textContent = 'Direct Caller Classes (depth = 1) [' + br.directDependentClasses.length + ']:';
+                    const brBox = document.createElement('div');
+                    brBox.className = 'code-snippet';
+                    brBox.textContent = br.directDependentClasses.join(', ');
+                    detailBox.appendChild(brTitle);
+                    detailBox.appendChild(brBox);
+                }
+
+                const transList = br.transitiveOnlyDependentClasses || br.transitiveDependentClasses || [];
+                if (transList.length > 0) {
+                    const transTitle = document.createElement('div');
+                    transTitle.className = 'detail-section-title';
+                    transTitle.style.marginTop = '6px';
+                    transTitle.textContent = 'Transitive-Only Caller Classes (depth >= 2) [' + transList.length + ']:';
+                    const transBox = document.createElement('div');
+                    transBox.className = 'code-snippet';
+                    transBox.textContent = transList.join(', ');
+                    detailBox.appendChild(transTitle);
+                    detailBox.appendChild(transBox);
+                }
+
+                // Observed Usages
+                if (a.usages && a.usages.length > 0) {
+                    const usTitle = document.createElement('div');
+                    usTitle.className = 'detail-section-title';
+                    usTitle.style.marginTop = '6px';
+                    usTitle.textContent = 'Observed Code Locations (' + a.usages.length + '):';
+                    const usList = document.createElement('div');
+                    a.usages.forEach(u => {
+                        const usItem = document.createElement('div');
+                        usItem.style.fontSize = '12px';
+                        usItem.style.marginBottom = '2px';
+                        usItem.textContent = u.filePath + ':' + u.line + ' [' + u.apiOwner + '.' + u.methodName + '("' + u.originalArgument + '")]';
+                        usList.appendChild(usItem);
+                    });
+                    detailBox.appendChild(usTitle);
+                    detailBox.appendChild(usList);
+                }
+
+                tdDetail.appendChild(detailBox);
+                trDetail.appendChild(tdDetail);
+                tbody.appendChild(trDetail);
+            });
+        }
+
         // Initial Load
         renderFindings();
         renderInventory();
+        renderPqc();
         renderUnresolved();
     </script>
 </body>
@@ -983,13 +1412,19 @@ public class SecurityHtmlReportExporter {
                 .replace("{{UNRESOLVED_COLOR}}", inv.summary().unresolvedObservations() > 0 ? "var(--medium)" : "var(--text-muted)")
                 .replace("{{UNRESOLVED_COUNT}}", String.valueOf(inv.summary().unresolvedObservations()))
                 .replace("{{INVENTORY_ASSETS_COUNT}}", String.valueOf(inv.assets().size()))
+                .replace("{{PQC_VULNERABLE_COUNT}}", String.valueOf(pqcVulnerableCount))
+                .replace("{{PQC_IMPACTED_COUNT}}", String.valueOf(pqcImpactedCount))
+                .replace("{{PQC_CLASSICALLY_WEAK_COUNT}}", String.valueOf(pqcClassicallyWeakCount))
+                .replace("{{PQC_SAFE_COUNT}}", String.valueOf(pqcSafeCount))
+                .replace("{{PQC_AFFECTED_CLASSES_COUNT}}", String.valueOf(pqcAffectedClassesCount))
                 .replace("{{SAFE_JSON_PAYLOAD}}", safeJsonPayload);
     }
 
     private String serializeSafePayloadJson(SecurityReportPayload payload) {
+        Path repoRoot = payload.repositoryPath();
         ObjectNode root = mapper.createObjectNode();
         root.put("repositoryName", payload.repositoryName());
-        root.put("repositoryPath", payload.repositoryPath().toString().replace('\\', '/'));
+        root.put("repositoryPath", relativizePath(payload.repositoryPath(), repoRoot));
         root.put("scannerVersion", payload.scannerVersion());
         root.put("scanTimestamp", payload.scanTimestamp().toString());
 
@@ -1002,7 +1437,7 @@ public class SecurityHtmlReportExporter {
             fn.put("category", f.category().name());
             fn.put("severity", f.severity().name());
             fn.put("message", f.message());
-            f.filePath().ifPresent(p -> fn.put("filePath", p.toString().replace('\\', '/')));
+            f.filePath().ifPresent(p -> fn.put("filePath", relativizePath(p, repoRoot)));
             f.location().ifPresent(loc -> {
                 ObjectNode locNode = fn.putObject("location");
                 locNode.put("startLine", loc.startLine());
@@ -1044,7 +1479,7 @@ public class SecurityHtmlReportExporter {
             for (CryptoAssetUsage u : a.usages()) {
                 ObjectNode un = usagesArr.addObject();
                 un.put("usageId", u.usageId());
-                un.put("filePath", u.filePath().toString().replace('\\', '/'));
+                un.put("filePath", relativizePath(u.filePath(), repoRoot));
                 ObjectNode locNode = un.putObject("location");
                 locNode.put("startLine", u.location().startLine());
                 locNode.put("startColumn", u.location().startColumn());
@@ -1057,6 +1492,91 @@ public class SecurityHtmlReportExporter {
             }
         }
 
+        // PQC Assessment
+        if (payload.pqcReport().isPresent()) {
+            PqcAssessmentReport pqc = payload.pqcReport().get();
+            ObjectNode pqcNode = root.putObject("pqc");
+            ObjectNode pqcSummary = pqcNode.putObject("summary");
+            pqcSummary.put("totalAssets", pqc.totalAssetsAnalyzed());
+            pqcSummary.put("quantumVulnerable", pqc.quantumVulnerableCount());
+            pqcSummary.put("quantumImpacted", pqc.quantumImpactedCount());
+            pqcSummary.put("classicallyWeak", pqc.classicallyWeakCount());
+            pqcSummary.put("quantumSafe", pqc.quantumSafeCount());
+            pqcSummary.put("unknown", pqc.unknownExposureCount());
+            pqcSummary.put("pqcMigrationCandidates", pqc.pqcMigrationCandidatesCount());
+            pqcSummary.put("classicalRemediation", pqc.classicalRemediationCount());
+            pqcSummary.put("quantumConsiderations", pqc.quantumConsiderationsCount());
+            pqcSummary.put("unknownOrUnresolved", pqc.unknownOrUnresolvedCount());
+            pqcSummary.put("criticalPriority", pqc.criticalPriorityCount());
+            pqcSummary.put("highPriority", pqc.highPriorityCount());
+            pqcSummary.put("mediumPriority", pqc.mediumPriorityCount());
+            pqcSummary.put("lowPriority", pqc.lowPriorityCount());
+            pqcSummary.put("reviewRequiredPriority", pqc.reviewRequiredPriorityCount());
+            pqcSummary.put("undeterminedPriority", pqc.undeterminedPriorityCount());
+            pqcSummary.put("totalAffectedClasses", pqc.totalAffectedClassesInBlastRadius());
+
+            ObjectNode expMap = pqcSummary.putObject("exposureBreakdown");
+            pqc.exposureBreakdown().forEach((k, v) -> expMap.put(k.name(), v));
+
+            ObjectNode purpMap = pqcSummary.putObject("purposeBreakdown");
+            pqc.purposeBreakdown().forEach((k, v) -> purpMap.put(k.name(), v));
+
+            ArrayNode pqcAssessments = pqcNode.putArray("assessments");
+            for (PqcAssetAssessment a : pqc.assessments()) {
+                ObjectNode an = pqcAssessments.addObject();
+                an.put("assetId", a.asset().assetId());
+                an.put("name", a.asset().name());
+                an.put("algorithmFamily", a.asset().algorithmFamily());
+                an.put("primitiveType", a.asset().primitiveType().name());
+                an.put("category", a.category().name());
+                an.put("categoryDisplayName", a.category().displayName());
+                an.put("exposureLevel", a.exposureLevel().name());
+                an.put("purpose", a.purpose().name());
+                an.put("priority", a.priority().name());
+                an.put("threatSummary", a.quantumThreatSummary());
+
+                ObjectNode recNode = an.putObject("recommendation");
+                recNode.put("targetStandard", a.recommendation().targetStandard());
+                recNode.put("standardFamily", a.recommendation().standardFamily());
+                recNode.put("transitionStrategy", a.recommendation().transitionStrategy());
+                recNode.put("nistGuidanceRationale", a.recommendation().rationale());
+                recNode.put("fipsReference", a.recommendation().standardFamily());
+
+                ObjectNode brNode = an.putObject("blastRadius");
+                ArrayNode directArr = brNode.putArray("directDependentClasses");
+                a.blastRadius().directDependentClasses().forEach(directArr::add);
+
+                ArrayNode transArr = brNode.putArray("transitiveDependentClasses");
+                a.blastRadius().transitiveDependentClasses().forEach(transArr::add);
+
+                ArrayNode transOnlyArr = brNode.putArray("transitiveOnlyDependentClasses");
+                a.blastRadius().transitiveOnlyDependentClasses().forEach(transOnlyArr::add);
+
+                brNode.put("totalDirectDependents", a.blastRadius().totalDirectDependents());
+                brNode.put("totalTransitiveOnlyDependents", a.blastRadius().totalTransitiveOnlyDependents());
+                brNode.put("totalReachableClasses", a.blastRadius().totalReachableClasses());
+                brNode.put("maxCallDepth", a.blastRadius().maxCallDepth());
+                brNode.put("cumulativeRiskScore", a.blastRadius().cumulativeRiskScore());
+                brNode.put("isSharedUtilityUsage", a.blastRadius().isSharedUtilityUsage());
+                brNode.put("reachabilitySemanticsNote", a.blastRadius().reachabilitySemanticsNote());
+
+                ArrayNode cusArr = brNode.putArray("affectedCompilationUnits");
+                a.blastRadius().affectedCompilationUnits().forEach(cusArr::add);
+
+                ArrayNode usagesArr = an.putArray("usages");
+                for (CryptoAssetUsage u : a.asset().usages()) {
+                    ObjectNode un = usagesArr.addObject();
+                    un.put("filePath", relativizePath(u.filePath(), repoRoot));
+                    un.put("line", u.location().startLine());
+                    un.put("column", u.location().startColumn());
+                    un.put("apiOwner", u.apiOwner().name());
+                    un.put("methodName", u.methodName());
+                    un.put("originalArgument", u.originalArgument());
+                    un.put("status", u.argumentResolution().status().name());
+                }
+            }
+        }
+
         try {
             String rawJson = mapper.writeValueAsString(root);
             // Escape '<', '>', '&' to prevent embedded script termination or injection
@@ -1066,6 +1586,23 @@ public class SecurityHtmlReportExporter {
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize SecurityReportPayload JSON", e);
         }
+    }
+
+    private static String relativizePath(Path path, Path repoRoot) {
+        if (path == null) return "unknown";
+        if (repoRoot == null) return path.toString().replace('\\', '/');
+        try {
+            Path normRepo = repoRoot.toAbsolutePath().normalize();
+            Path normPath = path.toAbsolutePath().normalize();
+            if (normPath.equals(normRepo)) {
+                return ".";
+            }
+            if (normPath.startsWith(normRepo)) {
+                return normRepo.relativize(normPath).toString().replace('\\', '/');
+            }
+        } catch (Exception ignored) {
+        }
+        return path.toString().replace('\\', '/');
     }
 
     private static String escapeHtml(String text) {

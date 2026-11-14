@@ -6,6 +6,7 @@ import com.codecontext.core.security.rule.CompilationUnitContext;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.PackageDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
@@ -14,6 +15,7 @@ import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -67,6 +69,21 @@ public final class CryptoApiDetector {
 
         SourceRange range = context.toSourceRange(call);
 
+        Map<String, String> properties = new HashMap<>();
+        properties.put("scope", scopeOpt.map(Expression::toString).orElse("<static-import>"));
+        call.findAncestor(TypeDeclaration.class).ifPresent(t -> {
+            @SuppressWarnings("unchecked")
+            Optional<String> fqOpt = ((TypeDeclaration<?>) t).getFullyQualifiedName();
+            String fqcn = fqOpt.orElseGet(() -> {
+                String pkg = cu.getPackageDeclaration().map(p -> p.getNameAsString() + ".").orElse("");
+                return pkg + t.getNameAsString();
+            });
+            properties.put("enclosingClass", fqcn);
+        });
+        call.findAncestor(MethodDeclaration.class).ifPresent(m -> {
+            properties.put("enclosingMethod", m.getNameAsString());
+        });
+
         return Optional.of(new CryptoApiUsage(
                 owner,
                 methodName,
@@ -76,7 +93,7 @@ public final class CryptoApiDetector {
                 exprResolution,
                 algorithm,
                 ownerConfidence,
-                Map.of("scope", scopeOpt.map(Expression::toString).orElse("<static-import>"))
+                Map.copyOf(properties)
         ));
     }
 
@@ -120,6 +137,21 @@ public final class CryptoApiDetector {
                 ? ExpressionResolution.resolved("DEFAULT", "", "Default constructor")
                 : LimitedExpressionResolver.resolve(creation.getArgument(0), context, creation);
 
+        Map<String, String> properties = new HashMap<>();
+        properties.put("constructor", "true");
+        creation.findAncestor(TypeDeclaration.class).ifPresent(t -> {
+            @SuppressWarnings("unchecked")
+            Optional<String> fqOpt = ((TypeDeclaration<?>) t).getFullyQualifiedName();
+            String fqcn = fqOpt.orElseGet(() -> {
+                String pkg = cu.getPackageDeclaration().map(p -> p.getNameAsString() + ".").orElse("");
+                return pkg + t.getNameAsString();
+            });
+            properties.put("enclosingClass", fqcn);
+        });
+        creation.findAncestor(MethodDeclaration.class).ifPresent(m -> {
+            properties.put("enclosingMethod", m.getNameAsString());
+        });
+
         return Optional.of(new CryptoApiUsage(
                 targetOwner,
                 "<init>",
@@ -129,7 +161,7 @@ public final class CryptoApiDetector {
                 resolution,
                 Optional.empty(),
                 confidence,
-                Map.of("constructor", "true")
+                Map.copyOf(properties)
         ));
     }
 

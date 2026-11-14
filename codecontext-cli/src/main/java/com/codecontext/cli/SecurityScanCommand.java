@@ -116,6 +116,56 @@ public class SecurityScanCommand implements Callable<Integer> {
                 com.codecontext.core.security.inventory.CryptoInventory inventory =
                         invEngine.buildInventory(cryptoUsages, resolvedPath);
 
+                com.codecontext.core.security.pqc.PqcMigrationEngine pqcEngine =
+                        new com.codecontext.core.security.pqc.PqcMigrationEngine();
+                org.jgrapht.graph.DefaultDirectedWeightedGraph<com.codecontext.core.graph.model.TypeVertex, com.codecontext.core.graph.model.DependencyEdge> graph = null;
+                java.util.Map<String, com.codecontext.core.graph.model.HotspotMetric> metrics = null;
+                try {
+                    com.codecontext.core.index.ConcurrentSymbolTable symbolTable = new com.codecontext.core.index.ConcurrentSymbolTable();
+                    com.codecontext.core.parser.BoundedPass1Scanner scanner = new com.codecontext.core.parser.BoundedPass1Scanner();
+                    scanner.scan(resolvedPath, symbolTable, includeTests);
+
+                    com.codecontext.core.hierarchy.TypeHierarchyIndex hierarchyIndex = new com.codecontext.core.hierarchy.TypeHierarchyIndex(symbolTable);
+                    symbolTable.allTypes().forEach(hierarchyIndex::index);
+
+                    com.codecontext.core.parser.Pass2InvocationResolver resolver = new com.codecontext.core.parser.Pass2InvocationResolver(
+                            symbolTable,
+                            hierarchyIndex,
+                            com.codecontext.core.resolver.ResolutionChain.standardChain()
+                    );
+
+                    List<Path> javaFiles = com.codecontext.core.parser.SourceFileFinder.find(resolvedPath, includeTests);
+                    List<com.codecontext.core.model.ParsedCompilationUnit> units = new java.util.ArrayList<>(javaFiles.size());
+                    for (Path f : javaFiles) {
+                        String source = Files.readString(f);
+                        com.codecontext.core.model.ParsedCompilationUnit rawUnit = resolver.resolve(f, source);
+                        List<com.codecontext.core.model.TypeDefinition> typesInFile = symbolTable.allTypes().stream()
+                                .filter(t -> t.sourceFilePath().equals(f))
+                                .toList();
+
+                        units.add(new com.codecontext.core.model.ParsedCompilationUnit(
+                                f,
+                                rawUnit.packageName(),
+                                rawUnit.imports(),
+                                typesInFile,
+                                rawUnit.invocations(),
+                                rawUnit.metrics(),
+                                rawUnit.parseErrors()
+                        ));
+                    }
+
+                    com.codecontext.core.graph.DependencyGraphBuilder graphBuilder = new com.codecontext.core.graph.DependencyGraphBuilder();
+                    graph = graphBuilder.build(units, com.codecontext.core.graph.GraphBuildOptions.defaults());
+
+                    com.codecontext.core.graph.analytics.PageRankEngine prEngine = new com.codecontext.core.graph.analytics.PageRankEngine();
+                    List<com.codecontext.core.graph.model.HotspotMetric> hotspots = prEngine.compute(graph, com.codecontext.core.graph.analytics.PageRankOptions.defaults());
+                    metrics = hotspots.stream().collect(java.util.stream.Collectors.toMap(com.codecontext.core.graph.model.HotspotMetric::fqcn, h -> h, (a, b) -> a));
+                } catch (Exception ignored) {
+                }
+
+                com.codecontext.core.security.pqc.PqcAssessmentReport pqcReport =
+                        pqcEngine.assessInventory(inventory, graph, metrics, 10);
+
                 String repoName = resolvedPath.getFileName() != null ? resolvedPath.getFileName().toString() : "root";
                 com.codecontext.cli.export.security.SecurityReportPayload payload =
                         new com.codecontext.cli.export.security.SecurityReportPayload(
@@ -125,7 +175,8 @@ public class SecurityScanCommand implements Callable<Integer> {
                                 "2.0.0",
                                 result,
                                 inventory,
-                                activeRules
+                                activeRules,
+                                java.util.Optional.of(pqcReport)
                         );
 
                 com.codecontext.cli.export.security.SecurityHtmlReportExporter exporter =

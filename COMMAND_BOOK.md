@@ -344,6 +344,59 @@ codecontext crypto cbom [PATH] [OPTIONS]
 
 ---
 
+### 3.8. `codecontext crypto pqc`
+
+#### What Does It Do?
+The `crypto pqc` command evaluates cryptographic assets for **Post-Quantum Cryptography (PQC)** migration readiness, risk exposure, and architectural blast radius:
+1. **Evidence-Based Quantum Exposure Classification**:
+   - `QUANTUM_VULNERABLE`: Classical public-key algorithms completely broken by Shor's algorithm on a Cryptanalytically Relevant Quantum Computer (CRQC) (RSA, Diffie-Hellman, ECDH, ECDSA, DSA, Ed25519).
+   - `QUANTUM_IMPACTED`: Modern symmetric ciphers and hashes subject to quantum speedups (Grover key search quadratic speedup; BHT collision finding constrained by extreme QRAM requirements). AES-256 and SHA-384/512 maintain robust post-quantum security margins.
+   - `CLASSICALLY_WEAK`: Legacy algorithms (DES, 3DES, MD5, SHA-1, RC4) broken or deprecated under classical cryptanalysis; remediation is required immediately regardless of quantum timelines.
+   - `QUANTUM_SAFE`: Algorithms matching recognized NIST post-quantum standards (FIPS 203 ML-KEM, FIPS 204 ML-DSA, FIPS 205 SLH-DSA). Identifier detection does not verify provider FIPS certification or implementation correctness.
+   - `UNKNOWN`: Unresolved dynamic expressions, unclassifiable constructs, or implementation-dependent usages (such as SHA1PRNG where Sun/Oracle OS entropy vs Apache Harmony defect depends on provider) requiring manual audit.
+2. **Actionable Assessment Category Separation**:
+   - `PQC_MIGRATION_CANDIDATE`: Public-key assets broken by Shor's algorithm on a CRQC.
+   - `CLASSICAL_REMEDIATION`: Deprecated or broken classical algorithms requiring immediate fix.
+   - `QUANTUM_CONSIDERATION`: Modern symmetric ciphers and hashes subject to Grover/BHT bounds; explicitly separated from mandatory PQC replacement candidates.
+   - `UNKNOWN_OR_UNRESOLVED`: Usages with runtime provider dependency or dynamic properties.
+3. **Cryptographic Operational Purpose Derivation**: Accurately derives immediate operation type (`KEY_PAIR_GENERATION`, `SYMMETRIC_KEY_GENERATION`, `SECURE_RANDOM`, `DIGITAL_SIGNATURE`, `KEY_AGREEMENT`, `PUBLIC_KEY_ENCRYPTION`, `SYMMETRIC_ENCRYPTION`, `HASH_FUNCTION`, `MAC`, `SECURE_TRANSPORT`, `UNKNOWN`) without assuming downstream application usage.
+4. **Migration Priority & NIST Migration Guidance**:
+   - Assigns `REVIEW_REQUIRED` by default for quantum-exposed assets because migration urgency depends on organizational business context (data confidentiality horizon, forward secrecy, and lifecycle longevity) rather than speculative timelines.
+   - Digital signatures: NIST FIPS 204 (ML-DSA) or FIPS 205 (SLH-DSA).
+   - Key agreement: NIST FIPS 203 (ML-KEM) via hybrid key exchange.
+   - Asymmetric encryption: Re-architect to KEM/DEM hybrid model (ML-KEM encapsulates symmetric key; AES-256-GCM encrypts payload); ML-KEM is not a drop-in Cipher replacement.
+   - Key pair generation: Flags usage-dependent migration path (signatures vs encapsulation) rather than assuming ML-KEM.
+5. **Architectural Blast Radius Integration**: Traverses the project's JGraphT call graph to compute direct upstream callers (depth = 1), transitive-only callers (depth >= 2), maximum call depth, and cumulative architectural risk. Replaces name-based matching with graph-based structural fan-in indicators (direct in-degree >= 5), and always discloses that class-level dependency reachability does not prove runtime invocation of the specific cryptographic method.
+
+#### Command Syntax:
+```bash
+codecontext crypto pqc [PATH] [OPTIONS]
+```
+
+#### Available Options & Flags:
+| Option / Flag | Type | Default Value | Plain English Description |
+| :--- | :---: | :---: | :--- |
+| `[PATH]` | Argument | `.` *(Current Directory)* | Repository root directory to evaluate. |
+| `-o`, `--output <FILE>` | File Path | *(Standard Output)* | Destination path for the generated assessment report (text table or JSON). |
+| `--format <table\|json>` | String | `table` | Output format: interactive high-contrast terminal `table` or machine-readable `json`. |
+| `--max-depth <INT>` | Integer | `10` | Maximum call-graph traversal depth when calculating transitive blast radius. |
+| `--include-tests` | Flag | `false` | Includes test source files in the PQC evaluation. |
+| `--no-color` | Flag | `false` | Disables ANSI color escapes in table output. |
+
+#### Example Usage:
+```bash
+# 1. Print high-contrast PQC assessment table to terminal
+codecontext crypto pqc .
+
+# 2. Output detailed PQC assessment as machine JSON for CI/CD gates
+codecontext crypto pqc . --format json -o pqc-report.json
+
+# 3. Limit call-graph blast radius traversal depth
+codecontext crypto pqc . --max-depth 5
+```
+
+---
+
 ---
 
 ## 4. Real-World CI/CD Automation (Working Today)
@@ -445,5 +498,7 @@ When reading CodeContext outputs in the terminal or in `codecontext-graph.html`,
 | Display cryptographic asset inventory table in terminal | `codecontext crypto inventory .` | `0` |
 | Export cryptographic asset inventory as JSON | `codecontext crypto inventory . --format json -o inventory.json` | `0` |
 | Generate CycloneDX 1.6 CBOM for compliance/audit | `codecontext crypto cbom . -o crypto-bom.json` | `0` |
+| Run Post-Quantum Cryptography (PQC) assessment table | `codecontext crypto pqc .` | `0` |
+| Export PQC migration report with blast radius as JSON | `codecontext crypto pqc . --format json -o pqc-report.json` | `0` |
 
 *(As new commands are added in upcoming sprints, they will be documented in this Command Book).*

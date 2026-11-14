@@ -144,15 +144,26 @@ class SecurityHtmlReportExporterTest {
         assertThat(html).contains("id=\"chart-families\"");
         assertThat(html).contains("id=\"chart-top-files\"");
         assertThat(html).contains("id=\"chart-resolution-ratio\"");
+        assertThat(html).contains("id=\"chart-pqc-exposure\"");
+        assertThat(html).contains("id=\"chart-pqc-priority\"");
 
-        // 5. Unresolved observations section
+        // 5. PQC Migration section
+        assertThat(html).contains("id=\"tab-pqc\"");
+        assertThat(html).contains("PQC Migration");
+
+        // 6. Unresolved observations section
         assertThat(html).contains("id=\"tab-unresolved\"");
 
-        // 6. Analysis limitations section
+        // 7. Analysis limitations section
         assertThat(html).contains("id=\"tab-limitations\"");
         assertThat(html).contains("Static Cryptographic Analysis Scope & Boundaries");
         assertThat(html).contains("Runtime TLS Interception");
         assertThat(html).contains("Local AST Scope");
+
+        // 7. Relative repository paths (no absolute path leak in payload or tables)
+        assertThat(html).contains("\"repositoryPath\":\".\"");
+        assertThat(html).contains("\"filePath\":\"src/main/Auth.java\"");
+        assertThat(html).doesNotContain("/test/repo/src");
     }
 
     @Test
@@ -274,6 +285,80 @@ class SecurityHtmlReportExporterTest {
         assertThat(html).contains("Unresolved Observations (0)");
         assertThat(html).contains("No security findings match the selected criteria.");
         assertThat(html).contains("No cryptographic assets match the selected criteria.");
+    }
+
+    @Test
+    @DisplayName("Renders PQC migration assessment tab with quantum vulnerable assets and NIST recommendations")
+    void testPqcMigrationDashboardRendering(@TempDir Path tempDir) throws IOException {
+        Path fakeRepo = Path.of("/test/repo");
+        CryptoAssetUsage rsaUsage = new CryptoAssetUsage(
+                "u-rsa",
+                Path.of("src/SecurityService.java"),
+                new SourceRange(25, 10, 25, 45),
+                Optional.of("com.example.SecurityService"),
+                Optional.of("signPayload"),
+                CryptoApiOwner.SIGNATURE,
+                "getInstance",
+                "\"SHA256withRSA\"",
+                ExpressionResolution.resolved("SHA256withRSA", "\"SHA256withRSA\"", "Literal"),
+                AnalysisConfidence.HIGH
+        );
+
+        CryptoAsset rsaAsset = new CryptoAsset(
+                "asset-rsa",
+                "SHA256withRSA",
+                "RSA",
+                CryptoPrimitiveType.SIGNATURE,
+                Optional.empty(),
+                Optional.empty(),
+                List.of(rsaUsage),
+                true,
+                AnalysisConfidence.HIGH
+        );
+
+        CryptoInventory inventory = new CryptoInventory(
+                List.of(rsaAsset),
+                Collections.emptyList(),
+                new CryptoInventorySummary(1, 1, 1, 0, 1, Map.of("RSA", 1), Map.of(CryptoPrimitiveType.SIGNATURE, 1))
+        );
+
+        com.codecontext.core.security.pqc.PqcMigrationEngine pqcEngine =
+                new com.codecontext.core.security.pqc.PqcMigrationEngine();
+        com.codecontext.core.security.pqc.PqcAssessmentReport pqcReport =
+                pqcEngine.assessInventory(inventory, null, null, 10);
+
+        SecurityAnalysisResult analysisResult = new SecurityAnalysisResult(
+                Collections.emptyList(),
+                1,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                10L,
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+
+        SecurityReportPayload payload = new SecurityReportPayload(
+                "pqc-repo",
+                fakeRepo,
+                Instant.now(),
+                "2.0.0",
+                analysisResult,
+                inventory,
+                Collections.emptyList(),
+                Optional.of(pqcReport)
+        );
+
+        Path outputFile = tempDir.resolve("pqc-report.html");
+        exporter.export(payload, outputFile);
+
+        String html = Files.readString(outputFile);
+        assertThat(html).contains("PQC Migration (1)");
+        assertThat(html).contains("Quantum Vulnerable");
+        assertThat(html).contains("SHA256withRSA");
+        assertThat(html).contains("NIST FIPS 204");
+        assertThat(html).contains("ML-DSA");
+        assertThat(html).contains("pqc-category-filter");
+        assertThat(html).contains("Assessment Category & Strategic Scope");
     }
 
     private SecurityReportPayload createEmptyPayload() {

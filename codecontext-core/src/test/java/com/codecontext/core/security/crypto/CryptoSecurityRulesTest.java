@@ -94,6 +94,67 @@ class CryptoSecurityRulesTest {
         assertThat(findings.get(0).ruleId()).isEqualTo("CC-CRYPTO-001");
     }
 
+    @Test
+    @DisplayName("CC-CRYPTO-001: Flags DES/ECB/PKCS5Padding as insecure symmetric ECB mode")
+    void testDesEcbFlagged() {
+        String code = """
+                package com.example;
+                import javax.crypto.Cipher;
+                public class App {
+                    void test() throws Exception {
+                        Cipher.getInstance("DES/ECB/PKCS5Padding");
+                    }
+                }
+                """;
+        EcbModeSecurityRule rule = new EcbModeSecurityRule();
+        List<Finding> findings = rule.analyze(parse(code));
+
+        assertThat(findings).hasSize(1);
+        assertThat(findings.get(0).ruleId()).isEqualTo("CC-CRYPTO-001");
+    }
+
+    @Test
+    @DisplayName("CC-CRYPTO-001: Does not flag asymmetric RSA-OAEP transformations (false positive prevention)")
+    void testRsaOaepNotFlaggedAsSymmetricEcb() {
+        String code256 = """
+                package com.example;
+                import javax.crypto.Cipher;
+                public class App {
+                    void test() throws Exception {
+                        Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+                    }
+                }
+                """;
+        String code512 = """
+                package com.example;
+                import javax.crypto.Cipher;
+                public class App {
+                    void test() throws Exception {
+                        Cipher.getInstance("RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
+                    }
+                }
+                """;
+        EcbModeSecurityRule rule = new EcbModeSecurityRule();
+        assertThat(rule.analyze(parse(code256))).isEmpty();
+        assertThat(rule.analyze(parse(code512))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("CC-CRYPTO-001: Does not flag RSA/ECB/PKCS1Padding under symmetric ECB rule")
+    void testRsaPkcs1PaddingNotFlaggedUnderEcbRule() {
+        String code = """
+                package com.example;
+                import javax.crypto.Cipher;
+                public class App {
+                    void test() throws Exception {
+                        Cipher.getInstance("RSA/ECB/PKCS1Padding");
+                    }
+                }
+                """;
+        EcbModeSecurityRule rule = new EcbModeSecurityRule();
+        assertThat(rule.analyze(parse(code))).isEmpty();
+    }
+
     // -------------------------------------------------------------
     // CC-CRYPTO-002: Legacy Insecure Cipher
     // -------------------------------------------------------------

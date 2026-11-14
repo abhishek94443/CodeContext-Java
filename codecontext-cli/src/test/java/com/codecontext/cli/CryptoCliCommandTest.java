@@ -24,13 +24,14 @@ class CryptoCliCommandTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
-    @DisplayName("codecontext crypto displays usage and lists inventory and cbom subcommands")
+    @DisplayName("codecontext crypto displays usage and lists inventory, cbom, and pqc subcommands")
     void testCryptoCommandUsage() {
         int exitCode = CodeContextLauncher.execute(new String[]{"crypto"}, out, err);
         assertThat(exitCode).isEqualTo(CliExitCode.SUCCESS.getCode());
         String stdout = outCapture.toString();
         assertThat(stdout).contains("inventory");
         assertThat(stdout).contains("cbom");
+        assertThat(stdout).contains("pqc");
     }
 
     @Test
@@ -170,7 +171,80 @@ class CryptoCliCommandTest {
         assertThat(html).contains("id=\"tab-findings\"");
         assertThat(html).contains("id=\"tab-inventory\"");
         assertThat(html).contains("id=\"tab-visualizations\"");
+        assertThat(html).contains("id=\"tab-pqc\"");
+        assertThat(html).contains("PQC Migration");
         assertThat(html).contains("id=\"tab-limitations\"");
+    }
+
+    @Test
+    @DisplayName("codecontext crypto pqc --format table evaluates quantum exposure and prints report")
+    void testCryptoPqcTableFormat(@TempDir Path tempRepo) throws IOException {
+        createSampleCryptoRepository(tempRepo);
+
+        int exitCode = CodeContextLauncher.execute(new String[]{
+                "crypto", "pqc", tempRepo.toString(),
+                "--format", "table"
+        }, out, err);
+
+        assertThat(exitCode).isEqualTo(CliExitCode.SUCCESS.getCode());
+        String stdout = outCapture.toString();
+        assertThat(stdout).contains("CodeContext Post-Quantum Cryptography (PQC) Migration Assessment");
+        assertThat(stdout).contains("Total Cryptographic Assets");
+        assertThat(stdout).contains("Quantum Impacted");
+        assertThat(stdout).contains("AES/GCM/NoPadding");
+        assertThat(stdout).contains("SYMMETRIC_ENCRYPTION");
+    }
+
+    @Test
+    @DisplayName("codecontext crypto pqc --format json returns structured PQC assessment")
+    void testCryptoPqcJsonFormat(@TempDir Path tempRepo) throws IOException {
+        createSampleCryptoRepository(tempRepo);
+
+        int exitCode = CodeContextLauncher.execute(new String[]{
+                "crypto", "pqc", tempRepo.toString(),
+                "--format", "json"
+        }, out, err);
+
+        assertThat(exitCode).isEqualTo(CliExitCode.SUCCESS.getCode());
+        String stdout = outCapture.toString();
+
+        JsonNode root = mapper.readTree(stdout);
+        assertThat(root.has("summary")).isTrue();
+        assertThat(root.has("assessments")).isTrue();
+
+        JsonNode summary = root.get("summary");
+        assertThat(summary.get("totalAssets").asInt()).isEqualTo(2);
+        assertThat(summary.get("quantumImpacted").asInt()).isEqualTo(2);
+
+        JsonNode assessments = root.get("assessments");
+        assertThat(assessments.isArray()).isTrue();
+        assertThat(assessments.size()).isEqualTo(2);
+
+        JsonNode aesAssessment = assessments.get(0);
+        assertThat(aesAssessment.has("exposureLevel")).isTrue();
+        assertThat(aesAssessment.has("category")).isTrue();
+        assertThat(aesAssessment.has("recommendation")).isTrue();
+        assertThat(aesAssessment.has("blastRadius")).isTrue();
+        assertThat(summary.has("pqcMigrationCandidates")).isTrue();
+        assertThat(summary.has("quantumConsiderations")).isTrue();
+    }
+
+    @Test
+    @DisplayName("codecontext crypto pqc -o output.json writes valid PQC report to disk")
+    void testCryptoPqcFileOutput(@TempDir Path tempRepo) throws IOException {
+        createSampleCryptoRepository(tempRepo);
+        Path outputFile = tempRepo.resolve("pqc-report.json");
+
+        int exitCode = CodeContextLauncher.execute(new String[]{
+                "crypto", "pqc", tempRepo.toString(),
+                "-o", outputFile.toString()
+        }, out, err);
+
+        assertThat(exitCode).isEqualTo(CliExitCode.SUCCESS.getCode());
+        assertThat(Files.exists(outputFile)).isTrue();
+
+        JsonNode root = mapper.readTree(Files.readString(outputFile));
+        assertThat(root.get("summary").get("totalAssets").asInt()).isEqualTo(2);
     }
 
     private void createSampleCryptoRepository(Path root) throws IOException {

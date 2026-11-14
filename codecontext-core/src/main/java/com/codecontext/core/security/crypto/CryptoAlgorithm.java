@@ -53,9 +53,22 @@ public record CryptoAlgorithm(
     }
 
     /**
+     * Checks if this algorithm belongs to an asymmetric (public-key) cipher family (e.g. RSA, ElGamal, ECIES).
+     */
+    public boolean isAsymmetricCipher() {
+        String f = family.toUpperCase(Locale.ROOT);
+        return f.contains("RSA") || f.contains("ELGAMAL") || f.contains("ECIES");
+    }
+
+    /**
      * Checks if this algorithm/transformation explicitly specifies Electronic Codebook (ECB) mode.
+     * Only applicable to symmetric ciphers. Asymmetric algorithms (e.g. RSA) are not symmetric block ciphers
+     * even if historical JCA transformation syntax permits "RSA/ECB/...".
      */
     public boolean isEcbMode() {
+        if (isAsymmetricCipher()) {
+            return false;
+        }
         if (mode.isPresent() && mode.get().equalsIgnoreCase("ECB")) {
             return true;
         }

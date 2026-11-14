@@ -9,10 +9,11 @@ import picocli.CommandLine.Spec;
  */
 @Command(
         name = "crypto",
-        description = "Cryptographic asset inventory and CycloneDX 1.6 CBOM generation",
+        description = "Cryptographic asset inventory, CycloneDX 1.6 CBOM, and PQC migration assessment",
         subcommands = {
                 CryptoInventoryCommand.class,
-                CryptoCbomCommand.class
+                CryptoCbomCommand.class,
+                CryptoPqcCommand.class
         }
 )
 public class CryptoCommand implements Runnable {

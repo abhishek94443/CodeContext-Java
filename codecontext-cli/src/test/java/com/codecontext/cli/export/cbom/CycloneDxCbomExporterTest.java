@@ -147,6 +147,40 @@ class CycloneDxCbomExporterTest {
         }
     }
 
+    @Test
+    @DisplayName("Asymmetric RSA cipher exports valid schema-compliant CBOM with pke primitive and encrypt/decrypt functions")
+    void testRsaCbomSchemaValidation(@TempDir Path tempRepo) throws Exception {
+        Path file = tempRepo.resolve("src/RsaService.java");
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, "class RsaService {}");
+
+        CryptoApiUsage rsaUsage = createUsage(file, 15, 8, CryptoApiOwner.CIPHER, "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
+        CryptoInventory inventory = inventoryEngine.buildInventory(List.of(rsaUsage), tempRepo);
+
+        Path cbomOutput = tempRepo.resolve("rsa-bom.json");
+        exporter.exportCbom(inventory, tempRepo, cbomOutput);
+
+        assertThat(Files.exists(cbomOutput)).isTrue();
+        String json = Files.readString(cbomOutput);
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(json);
+
+        JsonNode comp = root.get("components").get(0);
+        assertThat(comp.get("name").asText()).isEqualTo("RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
+        JsonNode algoProps = comp.get("cryptoProperties").get("algorithmProperties");
+        assertThat(algoProps.get("primitive").asText()).isEqualTo("pke");
+        JsonNode funcs = algoProps.get("cryptoFunctions");
+        assertThat(funcs.toString()).contains("encrypt").contains("decrypt");
+
+        try (InputStream schemaStream = getClass().getResourceAsStream("/cyclonedx/bom-1.6.schema.json")) {
+            JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
+            JsonSchema schema = factory.getSchema(schemaStream);
+            Set<ValidationMessage> errors = schema.validate(root);
+            assertThat(errors).isEmpty();
+        }
+    }
+
     private CryptoApiUsage createUsage(Path file, int line, int col, CryptoApiOwner owner, String rawAlgo) {
         CryptoAlgorithm algo = CryptoAlgorithm.parse(rawAlgo);
         ExpressionResolution res = ExpressionResolution.resolved(rawAlgo, "\"" + rawAlgo + "\"", "Direct literal");

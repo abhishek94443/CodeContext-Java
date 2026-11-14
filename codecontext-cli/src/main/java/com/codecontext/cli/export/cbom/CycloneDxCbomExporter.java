@@ -182,7 +182,7 @@ public class CycloneDxCbomExporter {
 
     private String[] determineCryptoFunctions(CryptoAsset asset) {
         return switch (asset.primitiveType()) {
-            case BLOCK_CIPHER, STREAM_CIPHER -> new String[]{"encrypt", "decrypt"};
+            case BLOCK_CIPHER, STREAM_CIPHER, PUBLIC_KEY_ENCRYPTION -> new String[]{"encrypt", "decrypt"};
             case MESSAGE_DIGEST -> new String[]{"digest"};
             case SIGNATURE -> new String[]{"sign", "verify"};
             case MAC -> new String[]{"tag", "digest"};

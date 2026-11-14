@@ -6,6 +6,7 @@ package com.codecontext.core.security.inventory;
 public enum CryptoPrimitiveType {
     BLOCK_CIPHER("block-cipher"),
     STREAM_CIPHER("stream-cipher"),
+    PUBLIC_KEY_ENCRYPTION("pke"),
     MESSAGE_DIGEST("hash"),
     MAC("mac"),
     SIGNATURE("signature"),

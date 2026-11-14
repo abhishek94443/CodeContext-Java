@@ -83,8 +83,10 @@ public class CryptoInventoryEngine {
             List<CryptoAssetUsage> assetUsages = entry.getValue();
             CanonicalAssetDescriptor desc = descriptors.get(groupKey);
 
-            // Determine aggregate confidence
-            boolean anyHigh = assetUsages.stream().anyMatch(us -> us.confidence() == AnalysisConfidence.HIGH);
+            // Determine aggregate confidence:
+            // High confidence requires both confirmed API ownership and resolved algorithm expression.
+            // UNKNOWN or unresolved algorithm expressions must not be classified with HIGH confidence.
+            boolean anyHigh = desc.isResolved() && assetUsages.stream().anyMatch(us -> us.confidence() == AnalysisConfidence.HIGH);
             AnalysisConfidence aggConfidence = anyHigh ? AnalysisConfidence.HIGH : AnalysisConfidence.LOW;
 
             String stableAssetId = generateStableAssetId(desc);
@@ -212,6 +214,14 @@ public class CryptoInventoryEngine {
         if (upper.equals("BLOWFISH")) return "Blowfish";
         if (upper.equals("CHACHA20") || upper.startsWith("CHACHA20")) return "ChaCha20";
 
+        if (upper.equals("ECDH") || upper.equals("DH") || upper.contains("DIFFIE-HELLMAN") || upper.contains("DIFFIEHELLMAN")) return "Diffie-Hellman";
+        if (upper.contains("RSA")) return "RSA";
+        if (upper.contains("ECDSA")) return "ECDSA";
+        if (upper.equals("EC") || upper.contains("ELLIPTIC")) return "EC";
+        if (upper.contains("DSA")) return "DSA";
+        if (upper.contains("ED25519")) return "Ed25519";
+        if (upper.startsWith("HMAC")) return "HMAC";
+
         if (upper.equals("MD2")) return "MD2";
         if (upper.equals("MD4")) return "MD4";
         if (upper.equals("MD5")) return "MD5";
@@ -220,13 +230,6 @@ public class CryptoInventoryEngine {
             return "SHA-2";
         }
         if (upper.startsWith("SHA3")) return "SHA-3";
-
-        if (upper.contains("RSA")) return "RSA";
-        if (upper.contains("ECDSA") || upper.contains("EC")) return "ECDSA";
-        if (upper.contains("DSA")) return "DSA";
-        if (upper.contains("ED25519")) return "Ed25519";
-        if (upper.startsWith("HMAC")) return "HMAC";
-        if (upper.equals("ECDH") || upper.equals("DH")) return "Diffie-Hellman";
 
         if (upper.startsWith("TLS") || upper.startsWith("SSL")) return "TLS";
 
@@ -237,6 +240,9 @@ public class CryptoInventoryEngine {
         String famUpper = family.toUpperCase(Locale.ROOT);
         return switch (owner) {
             case CIPHER -> {
+                if (famUpper.contains("RSA") || famUpper.contains("ELGAMAL") || famUpper.contains("ECIES")) {
+                    yield CryptoPrimitiveType.PUBLIC_KEY_ENCRYPTION;
+                }
                 if (famUpper.contains("RC4") || famUpper.contains("ARCFOUR") || famUpper.contains("CHACHA20")) {
                     yield CryptoPrimitiveType.STREAM_CIPHER;
                 }
