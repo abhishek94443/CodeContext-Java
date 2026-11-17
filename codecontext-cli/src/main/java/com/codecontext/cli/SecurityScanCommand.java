@@ -123,7 +123,8 @@ public class SecurityScanCommand implements Callable<Integer> {
                 try {
                     com.codecontext.core.index.ConcurrentSymbolTable symbolTable = new com.codecontext.core.index.ConcurrentSymbolTable();
                     com.codecontext.core.parser.BoundedPass1Scanner scanner = new com.codecontext.core.parser.BoundedPass1Scanner();
-                    scanner.scan(resolvedPath, symbolTable, includeTests);
+                    var scanSummary = scanner.scan(resolvedPath, symbolTable, includeTests);
+                    if (!scanSummary.failedFiles().isEmpty()) throw new java.io.IOException("Source parsing failed: " + scanSummary.failedFiles().size() + " files");
 
                     com.codecontext.core.hierarchy.TypeHierarchyIndex hierarchyIndex = new com.codecontext.core.hierarchy.TypeHierarchyIndex(symbolTable);
                     symbolTable.allTypes().forEach(hierarchyIndex::index);
@@ -139,6 +140,7 @@ public class SecurityScanCommand implements Callable<Integer> {
                     for (Path f : javaFiles) {
                         String source = Files.readString(f);
                         com.codecontext.core.model.ParsedCompilationUnit rawUnit = resolver.resolve(f, source);
+                        if (!rawUnit.parseErrors().isEmpty()) throw new java.io.IOException("Parse errors in " + f.getFileName());
                         List<com.codecontext.core.model.TypeDefinition> typesInFile = symbolTable.allTypes().stream()
                                 .filter(t -> t.sourceFilePath().equals(f))
                                 .toList();
@@ -160,7 +162,15 @@ public class SecurityScanCommand implements Callable<Integer> {
                     com.codecontext.core.graph.analytics.PageRankEngine prEngine = new com.codecontext.core.graph.analytics.PageRankEngine();
                     List<com.codecontext.core.graph.model.HotspotMetric> hotspots = prEngine.compute(graph, com.codecontext.core.graph.analytics.PageRankOptions.defaults());
                     metrics = hotspots.stream().collect(java.util.stream.Collectors.toMap(com.codecontext.core.graph.model.HotspotMetric::fqcn, h -> h, (a, b) -> a));
-                } catch (Exception ignored) {
+                } catch (Exception failure) {
+                    graph = null;
+                    metrics = null;
+                    String diagnostic = "Graph analysis incomplete: " + failure.getMessage();
+                    err.println(diagnostic);
+                    var errors = new java.util.ArrayList<>(result.analysisErrors());
+                    errors.add(diagnostic);
+                    result = new SecurityAnalysisResult(result.findings(), result.filesScanned(), result.failedFiles(),
+                            errors, result.durationMs(), result.activeRules(), result.cryptoUsages());
                 }
 
                 com.codecontext.core.security.pqc.PqcAssessmentReport pqcReport =

@@ -124,7 +124,24 @@ public final class LimitedExpressionResolver {
             Set<String> nextVisited = new HashSet<>(visitedVariables);
             nextVisited.add(fieldName);
 
-            return resolveField(fieldName, context, callSite, depth + 1, nextVisited);
+            String qualifier = fieldAccess.getScope().toString();
+            var owners = context.compilationUnit().findAll(com.github.javaparser.ast.body.TypeDeclaration.class).stream()
+                    .map(t -> (com.github.javaparser.ast.body.TypeDeclaration<?>) t)
+                    .filter(t -> t.getFullyQualifiedName().map(qualifier::equals).orElse(false)
+                            || t.getNameAsString().equals(qualifier)).toList();
+            if (qualifier.equals("this")) {
+                var owner = callSite.findAncestor(com.github.javaparser.ast.body.TypeDeclaration.class);
+                return owner.isPresent() ? resolveDeclaredField(owner.get(), fieldName, context, depth + 1, nextVisited)
+                        : ExpressionResolution.unknown(expr.toString(), "No enclosing type");
+            }
+            if (owners.size() != 1 || hasValueBinding(qualifier, callSite))
+                return ExpressionResolution.unknown(expr.toString(), "Unresolved or ambiguous constant owner");
+            var owner = owners.get(0);
+            var field = owner.getFieldByName(fieldName);
+            if (field.isEmpty() || !(field.get().isStatic()
+                    || owner instanceof ClassOrInterfaceDeclaration c && c.isInterface()))
+                return ExpressionResolution.unknown(expr.toString(), "Not a known static constant");
+            return resolveDeclaredField(owner, fieldName, context, depth + 1, nextVisited);
         }
 
         // 7. Method call return values, method parameters, and arbitrary expressions
@@ -142,103 +159,74 @@ public final class LimitedExpressionResolver {
             int depth,
             Set<String> visitedVariables
     ) {
-        // Step 1: Search enclosing method or block scope for local variable declarations
-        Node current = callSite;
-        BlockStmt enclosingBlock = null;
-        while (current != null) {
+        for (Node current = callSite; current != null; current = current.getParentNode().orElse(null)) {
             if (current instanceof BlockStmt block) {
-                enclosingBlock = block;
-                break;
-            }
-            current = current.getParentNode().orElse(null);
-        }
-
-        if (enclosingBlock != null) {
-            // Check for local variable declarators inside this callable/block
-            List<VariableDeclarator> declarations = new ArrayList<>();
-            for (VariableDeclarator vd : enclosingBlock.findAll(VariableDeclarator.class)) {
-                if (vd.getNameAsString().equals(varName)) {
-                    declarations.add(vd);
-                }
-            }
-
-            // Filter declarations that strictly appear BEFORE callSite
-            List<VariableDeclarator> priorDeclarations = declarations.stream()
-                    .filter(d -> isBefore(d, callSite))
-                    .toList();
-
-            if (!priorDeclarations.isEmpty()) {
-                // Take the nearest declaration (last prior declaration in source order)
-                VariableDeclarator targetDecl = priorDeclarations.get(priorDeclarations.size() - 1);
-
-                // Now check for any reassignments to varName between targetDecl and callSite
-                List<AssignExpr> assignments = enclosingBlock.findAll(AssignExpr.class).stream()
-                        .filter(a -> a.getTarget() instanceof NameExpr ne && ne.getNameAsString().equals(varName))
-                        .filter(a -> isBefore(targetDecl, a) && isBefore(a, callSite))
-                        .toList();
-
-                if (!assignments.isEmpty()) {
-                    // Check if assignments are in conditional control flow (if, loop, switch)
-                    for (AssignExpr a : assignments) {
-                        if (isInsideBranchOrLoop(a)) {
-                            return ExpressionResolution.ambiguous(varName, "Variable '" + varName + "' reassigned inside conditional control flow");
-                        }
+                var declarations = block.findAll(VariableDeclarator.class).stream()
+                        .filter(v -> v.getNameAsString().equals(varName))
+                        .filter(v -> v.getParentNode().filter(p -> p instanceof com.github.javaparser.ast.expr.VariableDeclarationExpr)
+                                .flatMap(Node::getParentNode).filter(p -> p instanceof com.github.javaparser.ast.stmt.ExpressionStmt)
+                                .flatMap(Node::getParentNode).filter(block::equals).isPresent()).toList();
+                var prior = declarations.stream().filter(v -> isBefore(v, callSite)).toList();
+                if (!prior.isEmpty()) {
+                    var declaration = prior.get(prior.size() - 1);
+                    var assignments = block.findAll(AssignExpr.class).stream()
+                            .filter(a -> a.getTarget() instanceof NameExpr n && n.getNameAsString().equals(varName))
+                            .filter(a -> isBefore(declaration, a) && isBefore(a, callSite)).toList();
+                    if (assignments.stream().anyMatch(a -> a.getOperator() != AssignExpr.Operator.ASSIGN))
+                        return ExpressionResolution.unknown(varName, "Compound assignment is not evaluated");
+                    if (assignments.stream().anyMatch(LimitedExpressionResolver::isInsideBranchOrLoop) || assignments.size() > 1)
+                        return ExpressionResolution.ambiguous(varName, "Multiple or conditional assignments");
+                    if (!assignments.isEmpty()) {
+                        var assignment = assignments.get(0);
+                        if (!assignment.findAncestor(BlockStmt.class).filter(block::equals).isPresent())
+                            return ExpressionResolution.unknown(varName, "Assignment crosses a scope boundary");
+                        return resolveInternal(assignment.getValue(), context, assignment, depth, visitedVariables);
                     }
-                    if (assignments.size() > 1) {
-                        return ExpressionResolution.ambiguous(varName, "Variable '" + varName + "' has multiple reassignments");
-                    }
-                    // Exactly one linear assignment before callSite
-                    AssignExpr singleAssignment = assignments.get(0);
-                    return resolveInternal(singleAssignment.getValue(), context, singleAssignment, depth, visitedVariables);
+                    return declaration.getInitializer()
+                            .map(e -> resolveInternal(e, context, declaration, depth, visitedVariables))
+                            .orElseGet(() -> ExpressionResolution.unknown(varName, "No initializer"));
                 }
-
-                // No reassignments between declaration and callSite: resolve initializer
-                if (targetDecl.getInitializer().isPresent()) {
-                    return resolveInternal(targetDecl.getInitializer().get(), context, targetDecl, depth, visitedVariables);
-                } else {
-                    return ExpressionResolution.unknown(varName, "Variable '" + varName + "' declared without initializer");
-                }
+                if (!declarations.isEmpty()) return ExpressionResolution.unknown(varName, "Declaration follows call site");
             }
-
-            // Check if variable is declared AFTER the call site
-            boolean declaredAfter = declarations.stream().anyMatch(d -> !isBefore(d, callSite));
-            if (declaredAfter) {
-                return ExpressionResolution.unknown(varName, "Variable '" + varName + "' is assigned after the call site");
+            if (current instanceof com.github.javaparser.ast.nodeTypes.NodeWithParameters<?> parameters
+                    && parameters.getParameters().stream().anyMatch(p -> p.getNameAsString().equals(varName)))
+                return ExpressionResolution.unknown(varName, "Runtime parameter shadows fields");
+            if (current instanceof com.github.javaparser.ast.stmt.CatchClause c && c.getParameter().getNameAsString().equals(varName))
+                return ExpressionResolution.unknown(varName, "Catch parameter");
+            if (current instanceof ForEachStmt loop && loop.getVariable().getVariables().stream()
+                    .anyMatch(v -> v.getNameAsString().equals(varName)))
+                return ExpressionResolution.unknown(varName, "Loop variable");
+            if (current instanceof ForStmt || current instanceof com.github.javaparser.ast.stmt.TryStmt) {
+                if (current.findAll(VariableDeclarator.class).stream().anyMatch(v -> v.getNameAsString().equals(varName)))
+                    return ExpressionResolution.unknown(varName, "Loop or resource binding is not evaluated");
             }
+            if (current instanceof com.github.javaparser.ast.body.TypeDeclaration<?> type && type.getFieldByName(varName).isPresent())
+                return resolveDeclaredField(type, varName, context, depth, visitedVariables);
         }
-
-        // Step 2: Search enclosing class fields (static final constants)
-        return resolveField(varName, context, callSite, depth, visitedVariables);
+        return ExpressionResolution.unknown(varName, "Unresolved identifier: " + varName);
     }
 
-    private static ExpressionResolution resolveField(
-            String fieldName,
-            CompilationUnitContext context,
-            Node callSite,
-            int depth,
-            Set<String> visitedVariables
-    ) {
-        CompilationUnit cu = context.compilationUnit();
-        for (ClassOrInterfaceDeclaration cid : cu.findAll(ClassOrInterfaceDeclaration.class)) {
-            for (FieldDeclaration field : cid.getFields()) {
-                for (VariableDeclarator vd : field.getVariables()) {
-                    if (vd.getNameAsString().equals(fieldName)) {
-                        // Check if field is final (or interface constant)
-                        boolean isFinal = field.isFinal() || cid.isInterface();
-                        if (!isFinal) {
-                            return ExpressionResolution.unknown(fieldName, "Field '" + fieldName + "' is non-final and mutable");
-                        }
-                        if (vd.getInitializer().isPresent()) {
-                            return resolveInternal(vd.getInitializer().get(), context, vd, depth, visitedVariables);
-                        } else {
-                            return ExpressionResolution.unknown(fieldName, "Final field '" + fieldName + "' has no direct initializer");
-                        }
-                    }
-                }
-            }
+    private static boolean hasValueBinding(String name, Node site) {
+        for (Node node = site; node != null; node = node.getParentNode().orElse(null)) {
+            if (node instanceof com.github.javaparser.ast.nodeTypes.NodeWithParameters<?> parameters
+                    && parameters.getParameters().stream().anyMatch(p -> p.getNameAsString().equals(name))) return true;
+            if (node instanceof BlockStmt block && block.findAll(VariableDeclarator.class).stream()
+                    .anyMatch(v -> v.getNameAsString().equals(name) && isBefore(v, site))) return true;
+            if (node instanceof com.github.javaparser.ast.body.TypeDeclaration<?> type && type.getFieldByName(name).isPresent()) return true;
         }
+        return false;
+    }
 
-        return ExpressionResolution.unknown(fieldName, "Unresolved identifier: " + fieldName);
+    private static ExpressionResolution resolveDeclaredField(
+            com.github.javaparser.ast.body.TypeDeclaration<?> owner, String name,
+            CompilationUnitContext context, int depth, Set<String> visitedVariables) {
+        var field = owner.getFieldByName(name);
+        if (field.isEmpty()) return ExpressionResolution.unknown(name, "Unknown field on selected owner");
+        if (!(field.get().isFinal() || owner instanceof ClassOrInterfaceDeclaration c && c.isInterface()))
+            return ExpressionResolution.unknown(name, "Mutable field");
+        var variable = field.get().getVariables().stream().filter(v -> v.getNameAsString().equals(name)).findFirst().orElseThrow();
+        return variable.getInitializer().map(e -> resolveInternal(e, context, variable, depth, visitedVariables))
+                .orElseGet(() -> ExpressionResolution.unknown(name, "Final field has no initializer"));
     }
 
     private static boolean isBefore(Node first, Node second) {

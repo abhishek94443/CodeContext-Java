@@ -4,7 +4,7 @@
 > Maintained by: Abhishek Dwivedi ([abhishekdwivedi94443@gmail.com](mailto:abhishekdwivedi94443@gmail.com))  
 > Repository: [https://github.com/abhishek94443/CodeContext-Java](https://github.com/abhishek94443/CodeContext-Java)
 
-CodeContext-Java is a deterministic codebase intelligence engine built for enterprise Java repositories. It combines **Abstract Syntax Tree (AST) lexical analysis**, **directed multigraph algorithms**, and **Git commit forensics** to compute mathematical ground truths about software architecture before invoking any probabilistic AI reasoning.
+CodeContext-Java is a deterministic codebase intelligence engine built for enterprise Java repositories. It combines **Abstract Syntax Tree (AST) lexical analysis**, **directed weighted graph algorithms**, and **Git commit forensics** to compute approximate source-level architecture metrics before invoking any probabilistic AI reasoning.
 
 ---
 
@@ -17,7 +17,7 @@ The system processes code through a five-stage deterministic pipeline:
 | 1. INGESTION & PARSING (codecontext-core)                                     |
 |    • JavaParser 3.25.8 with Bounded Concurrency                               |
 |    • Pass 1: Fast declaration inventory (Classes, Records, Interfaces)        |
-|    • Tri-Index ConcurrentSymbolTable with Flyweight String Interning          |
+|    • Tri-Index ConcurrentSymbolTable (no production string interning)          |
 |    • Block-level LexicalScopeStack for local variable type inference          |
 +-------------------------------------------------------------------------------+
                                        |
@@ -57,7 +57,7 @@ The system processes code through a five-stage deterministic pipeline:
 | 5. STANDALONE HTML VISUALIZER         | | 6. DEVELOPER CLI ENGINE             |
 |    • Zero-dependency single-file HTML | |    • Picocli sub-100ms startup      |
 |    • Interactive canvas               | |    • `analyze`: Full repo telemetry |
-|    • 4 Lenses: Architecture Map,      | |    • `cycles`: CI gate & Tarjan SCC |
+|    • 4 Lenses: Architecture Map,      | |    • `cycles`: CI gate & Kosaraju SCC |
 |      Component Inspector, Blast       | |    • `impact`: Blast radius tree    |
 |      Radius, and Method Calls         | |    • `sarif`: OASIS SARIF 2.1.0     |
 +---------------------------------------+ +-------------------------------------+
@@ -96,7 +96,7 @@ The system processes code through a five-stage deterministic pipeline:
 - **Graph Modeling (JGraphT):** Represents the entire codebase as a directed weighted graph where vertices are classes/interfaces and edges denote method invocations and type couplings with logarithmic damping weights.
 - **Analytics Engines:**
   - `PageRankEngine`: Computes architectural authority scores to identify central hubs.
-  - `CycleDetectionEngine`: Employs Kosaraju's Strongly Connected Components algorithm with bounded DFS cycle path extraction in linear time $O(V + E)$.
+  - `CycleDetectionEngine`: Employs Kosaraju's Strongly Connected Components algorithm in $O(V + E)$, followed by bounded DFS cycle extraction whose cost is not linear.
   - `BlastRadiusEngine`: Inverts the dependency graph (`EdgeReversedGraph`) and performs breadth-first search to find all direct and transitive callers affected by a change.
   - `CompositeRiskEngine`: Merges coupling metrics with JGit commit churn and author counts to calculate risk scores (Low, Medium, High, Critical).
   - `HtmlReportExporter`: Generates the self-contained, offline interactive architectural blueprint (`codecontext-graph.html`).
@@ -112,7 +112,7 @@ The system processes code through a five-stage deterministic pipeline:
   - `crypto inventory`: Discovers and displays a normalized inventory of all cryptographic algorithms and APIs used in tabular text or JSON format.
   - `crypto cbom`: Generates an official CycloneDX 1.6 Cryptography Bill of Materials (CBOM) JSON document.
 - **Export Adapters:**
-  - `CycloneDxCbomExporter`: CycloneDX 1.6 compliant CBOM generator mapping canonical cryptographic assets into CycloneDX 1.6 JSON with native `cryptoProperties`, `algorithmProperties`, `primitive`, `mode`, `padding`, `cryptoFunctions`, occurrences in `evidence`, and dependency relationships. Verified against official JSON schema.
+  - `CycloneDxCbomExporter`: CycloneDX 1.6 CBOM exporter mapping canonical cryptographic assets into CycloneDX 1.6 JSON with native `cryptoProperties`, `algorithmProperties`, `primitive`, `mode`, `padding`, `cryptoFunctions`, occurrences in `evidence`, and dependency relationships. Selected fixtures are verified against the pinned official JSON schema; semantic completeness is not guaranteed.
   - `SecurityHtmlReportExporter` & `SecurityReportPayload`: Dedicated, standalone, zero-dependency interactive HTML security dashboard (`codecontext-security.html`). Completely decoupled from architectural graph visualization (`HtmlReportExporter`). Provides 6 core sections: Overview Cards, Filterable Findings, Cryptographic Inventory, Visualizations & Charts, Unresolved Observations Table, and Static Analysis Limitations. Protected against HTML injection and XSS via DOM construction and JSON script-closing prevention.
   - `SarifExporter`: Generalized OASIS SARIF 2.1.0 exporter supporting both architectural findings (`CC001`, `CC002`) and security findings with exact line/column regions and POSIX relative URIs.
   - `ArchitecturalFindingAdapter`: Decouples graph analytics results from presentation by mapping cycles and hotspots into the canonical `Finding` model.
@@ -140,3 +140,7 @@ The system processes code through a five-stage deterministic pipeline:
 * **GitHub Repository:** [https://github.com/abhishek94443/CodeContext-Java](https://github.com/abhishek94443/CodeContext-Java)
 * **Discussions:** [Join the conversation](https://github.com/abhishek94443/CodeContext-Java/discussions)
 * **Issues:** [Report an issue](https://github.com/abhishek94443/CodeContext-Java/issues)
+
+## Correctness boundaries
+
+StringFlyweightPool is a tested utility, but is not used by the production scanner; no production memory savings are attributed to it. Graphs aggregate calls by type pair and include boundary nodes by default. PageRank weights use log2(1 + callCount). Class reachability does not prove runtime execution. PathTraceEngine checks its hop limit after BFS; cycle limits bound reported paths and recursion depth, not all search work. The legacy analyze JSON fields totalClasses and totalInvocations mean graph vertices and aggregated edges. See [the correctness report](CORRECTNESS_REMEDIATION.md).

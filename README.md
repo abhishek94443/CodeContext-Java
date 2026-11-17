@@ -1,10 +1,11 @@
 # CodeContext-Java
 
-> **The High-Performance CLI & Architectural Intelligence Engine for Java Codebases**  
-> *Understand your architecture. Predict change blast radius. Prevent regressions before you commit.*
+> **Architecture and Cryptographic Security Analysis for Java Codebases**
+>
+> *Explore source dependencies. Find risky cryptographic usage. Assess change impact and post-quantum migration needs.*
 
 [![Java](https://img.shields.io/badge/Java-21%20LTS-orange.svg)](https://openjdk.org/projects/jdk/21/)
-[![Build Status](https://img.shields.io/badge/Tests-135%20Passing%20(100%25)-brightgreen.svg)]()
+[![Build Status](https://img.shields.io/badge/Tests-See%20verification%20report-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Architecture](https://img.shields.io/badge/Architecture-100%25%20Air--Gapped%20%26%20Offline-blueviolet.svg)]()
 [![Discussions](https://img.shields.io/badge/Community-Discussions-blue?logo=github)](https://github.com/abhishek94443/CodeContext-Java/discussions)
@@ -14,16 +15,38 @@
 
 ## What is CodeContext-Java?
 
-Think of CodeContext as an **interactive GPS and automated architectural safety gate for your software**.
+**CodeContext-Java is a local command-line tool that helps you understand a Java project's architecture and its use of cryptography.** It reads Java source code and produces terminal output, machine-readable results and two separate interactive HTML reports. You do not need to run the application being analyzed.
 
-In any growing Java codebase, making changes can be stressful. A developer edits what looks like a simple method, but hours later, builds or production break because that method was silently called by dozens of other classes across multiple packages.
+It helps answer two practical questions: **“Which classes could be affected by this change?”** and **“Where does this project use cryptography that needs review?”**
 
-**CodeContext-Java eliminates that guesswork through a lightning-fast CLI:**
-1. **Maps your entire system:** Analyzes Java source code to show how every class, method, and package connects.
-2. **Finds hidden bottlenecks:** Uses PageRank mathematics to pinpoint critical architectural hubs.
-3. **Calculates Blast Radius in seconds:** Runs `codecontext impact <Class>` to show exactly who calls your class and what test suites to run *before* you touch code.
-4. **Catches Architectural Cycles:** Uses Tarjan's SCC algorithm to detect circular dependencies (`A -> B -> C -> A`), highlighting the weakest link so you can decouple them cleanly.
-5. **Generates an Offline Visual Blueprint:** Exports an interactive, single-file HTML architecture report (`codecontext-graph.html`) requiring zero servers and zero internet.
+### Understand the architecture
+
+CodeContext uses JavaParser to collect declarations and analyze supported invocation patterns, then builds a class dependency graph with JGraphT. It ranks architectural hubs with PageRank, detects strongly connected components with Kosaraju's algorithm, extracts bounded cycle examples and follows upstream dependencies to estimate a class's blast radius. The architecture dashboard lets you explore these relationships visually.
+
+### Understand cryptographic security
+
+CodeContext detects supported Java cryptographic API calls and resolves algorithm names from literals and supported local expressions. Its cryptography workflow includes:
+
+- **Security scanning:** Five rules flag ECB mode, legacy ciphers, weak message digests, provider-dependent default cipher transformations and obsolete SSL/TLS protocol selections. Findings include source locations, evidence and remediation guidance.
+- **Cryptographic inventory:** Groups observed algorithms and configurations into assets, showing where each is used. For example, AES encryption and AES key generation are distinct inventory assets.
+- **Cryptographic Bill of Materials (CBOM):** Exports the inventory as CycloneDX 1.6 JSON for further analysis and tooling. Schema validation checks structure; it does not prove the inventory captures every runtime cryptographic behavior.
+- **Post-quantum cryptography (PQC) assessment:** Classifies observed assets by quantum exposure and classical weakness, suggests migration directions, and uses class dependencies to estimate upstream impact. A TLS API call alone does not prove a quantum-vulnerable key exchange; insufficient evidence remains unknown.
+- **Security dashboard:** Presents findings, inventory and PQC assessments in an independent offline HTML report.
+
+Both workflows use **static source analysis**. Their results support investigation: they do not guarantee runtime execution paths, complete symbol resolution or detection of every vulnerability. Dynamic values and unsupported constructs can remain unresolved.
+
+## Explore the example HTML reports
+
+These are separate, self-contained reports generated from the correctness-remediated implementation:
+
+| Report | Example project | What you can explore |
+| :--- | :--- | :--- |
+| **[Architecture report — Gson](examples/gson-architecture-report.html)** | Gson | Class dependencies, architectural hotspots, cycle examples and upstream impact. |
+| **[Cryptography and security report — BenchmarkJava](examples/benchmarkjava-security-report.html)** | OWASP BenchmarkJava | Cryptographic findings, asset inventory, PQC assessment and affected classes. BenchmarkJava deliberately contains vulnerable examples. |
+
+**To open either report from GitHub:** follow its link, download the HTML file using the file page's download button, then open the downloaded file in your browser. The repository file view is not the interactive dashboard. You can also clone the repository and open the files directly from the `examples/` folder.
+
+No server or internet connection is needed to use the downloaded reports. Search, tabs, graph selection and filters were manually confirmed working offline. These are saved example snapshots; use the CLI to generate reports for your own project.
 
 ---
 
@@ -67,7 +90,7 @@ CodeContext-Java features a fast, focused CLI designed for everyday developer wo
 | Command | What It Does (Plain English) | Typical Use Case |
 | :--- | :--- | :--- |
 | **`codecontext analyze [PATH]`** | Scans your Java codebase, ranks the Top 10 architectural hotspots, and generates the interactive visual report. | When exploring a new codebase, performing architectural reviews, or onboarding developers. |
-| **`codecontext cycles [PATH]`** | Detects all circular dependency loops in linear time $O(V + E)$. | Finding architectural loops locally or enforcing clean architecture in CI pipelines. |
+| **`codecontext cycles [PATH]`** | Finds SCCs in $O(V + E)$ and extracts bounded cycle examples; enumeration may be truncated. | Finding architectural loops locally or enforcing clean architecture in CI pipelines. |
 | **`codecontext impact <Class>`** | Shows an indented upstream blast radius tree of all callers and automatically suggests test suites to run. | In your terminal right before you refactor or modify an existing class. |
 | **`codecontext sarif [PATH]`** | Emits findings in standard OASIS SARIF 2.1.0 format with POSIX relative paths. | Generating machine-readable static analysis reports for code review platforms. |
 
@@ -75,8 +98,24 @@ CodeContext-Java features a fast, focused CLI designed for everyday developer wo
 | Command | What It Does (Plain English) | Typical Use Case |
 | :--- | :--- | :--- |
 | **`codecontext security scan [PATH]`** | Scans for cryptographic vulnerabilities (ECB mode, weak digests, deprecated ciphers, obsolete TLS) with terminal, SARIF, JSON, or interactive HTML dashboard output (`--format html`). | Automated security audits, pull request checks, and security dashboard generation. |
-| **`codecontext crypto inventory [PATH]`** | Discovers and normalizes all cryptographic algorithms, primitives, and modes used across the repository into tabular text or JSON. | Cryptographic asset discovery, auditing cryptographic agility, and compliance reviews. |
-| **`codecontext crypto cbom [PATH]`** | Generates an official CycloneDX 1.6 Cryptography Bill of Materials (`crypto-bom.json`) compliant with the official CycloneDX 1.6 schema. | Supply chain security, post-quantum readiness assessments, and cryptographic BOM compliance. |
+| **`codecontext crypto inventory [PATH]`** | Discovers and normalizes supported cryptographic API usages, algorithms, primitives, and modes observed in source into tabular text or JSON. | Cryptographic asset discovery, auditing cryptographic agility, and compliance reviews. |
+| **`codecontext crypto cbom [PATH]`** | Exports a CycloneDX 1.6 CBOM (`crypto-bom.json`); regression fixtures are checked against the pinned schema. Schema validity does not establish semantic completeness. | Supply chain security, post-quantum readiness assessments, and cryptographic BOM compliance. |
+| **`codecontext crypto pqc [PATH]`** | Assesses observed assets for quantum exposure, migration considerations and upstream class impact; preserves unknown evidence. | Planning a cryptographic migration and identifying classes to review. |
+
+### Generate reports for your project
+
+```bash
+# Architecture dashboard: writes codecontext-graph.html in the output folder
+codecontext analyze /path/to/project --output ./architecture-output
+
+# Independent security dashboard
+codecontext security scan /path/to/project -o ./security-report.html
+
+# Machine-readable cryptographic inventory, CBOM and PQC assessment
+codecontext crypto inventory /path/to/project --format json -o ./crypto-inventory.json
+codecontext crypto cbom /path/to/project -o ./crypto-bom.json
+codecontext crypto pqc /path/to/project --format json -o ./pqc-assessment.json
+```
 
 > 📖 **Looking for all flags, options, and behaviors?**  
 > Check the complete [**Command Book (`COMMAND_BOOK.md`)**](COMMAND_BOOK.md) for full syntax and examples.
@@ -127,7 +166,7 @@ CodeContext-Java is open-source and actively maintained. Community discussions a
 
 ## Architecture & System Design
 
-Curious about how CodeContext-Java parses Abstract Syntax Trees, constructs directed multigraphs, and calculates PageRank authority?  
+Curious about how CodeContext-Java parses Abstract Syntax Trees, constructs directed dependency graphs, and calculates PageRank authority?
 Read the high-level system design in [**`ARCHITECTURE.md`**](ARCHITECTURE.md).
 
 ---
@@ -135,3 +174,4 @@ Read the high-level system design in [**`ARCHITECTURE.md`**](ARCHITECTURE.md).
 ## License
 
 Distributed under the Apache 2.0 License. Built with Java 21, JavaParser, JGraphT, and Picocli.
+See [correctness remediation and limitations](CORRECTNESS_REMEDIATION.md) for verified results, metric definitions, and remaining analysis boundaries.

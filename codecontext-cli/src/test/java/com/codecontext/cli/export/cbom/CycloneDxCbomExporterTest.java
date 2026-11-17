@@ -30,6 +30,50 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class CycloneDxCbomExporterTest {
 
+    @Test
+    void tlsUsesProtocolPropertiesAndValidSchema(@TempDir Path repo) throws Exception {
+        var inventory = new CryptoInventoryEngine().buildInventory(List.of(
+                createUsage(repo.resolve("A.java"), 1, 1, CryptoApiOwner.SSL_CONTEXT, "TLSv1.3")), repo);
+        var root = new ObjectMapper().readTree(new CycloneDxCbomExporter().generateCbomJson(inventory, repo));
+        validatePinnedSchema(root);
+        var properties = root.path("components").get(0).path("cryptoProperties");
+        assertThat(properties.path("assetType").asText()).isEqualTo("protocol");
+        assertThat(properties.path("protocolProperties").path("type").asText()).isEqualTo("tls");
+        assertThat(properties.has("algorithmProperties")).isFalse();
+    }
+
+    @Test
+    void keyAgreementUsesValidFunctions(@TempDir Path repo) throws Exception {
+        var inventory = new CryptoInventoryEngine().buildInventory(List.of(
+                createUsage(repo.resolve("A.java"), 1, 1, CryptoApiOwner.KEY_AGREEMENT, "ECDH")), repo);
+        validatePinnedSchema(new ObjectMapper().readTree(new CycloneDxCbomExporter().generateCbomJson(inventory, repo)));
+    }
+
+    @Test
+    void distinctAesOperationsHaveUniqueStableReferences(@TempDir Path repo) throws Exception {
+        var observations = List.of(
+                createUsage(repo.resolve("A.java"), 1, 1, CryptoApiOwner.CIPHER, "AES"),
+                createUsage(repo.resolve("A.java"), 2, 1, CryptoApiOwner.KEY_GENERATOR, "AES"));
+        var inventory = new CryptoInventoryEngine().buildInventory(observations, repo);
+        assertThat(inventory.assets()).hasSize(2);
+        assertThat(inventory.assets()).extracting(a -> a.assetId()).doesNotHaveDuplicates();
+        var root = new ObjectMapper().readTree(new CycloneDxCbomExporter().generateCbomJson(inventory, repo));
+        var refs = new java.util.HashSet<String>();
+        root.path("components").forEach(c -> refs.add(c.path("bom-ref").asText()));
+        assertThat(refs).hasSize(2);
+        root.path("dependencies").get(0).path("dependsOn").forEach(r -> assertThat(refs).contains(r.asText()));
+        var elsewhere = new CryptoInventoryEngine().buildInventory(List.of(
+                createUsage(Path.of("elsewhere/A.java"), 9, 1, CryptoApiOwner.CIPHER, "aes"),
+                createUsage(Path.of("elsewhere/A.java"), 10, 1, CryptoApiOwner.KEY_GENERATOR, "AES")), Path.of("elsewhere"));
+        assertThat(elsewhere.assets()).extracting(a -> a.assetId()).containsExactlyInAnyOrderElementsOf(refs);
+    }
+
+    private void validatePinnedSchema(JsonNode root) throws Exception {
+        try (var stream = getClass().getResourceAsStream("/cyclonedx/bom-1.6.schema.json")) {
+            assertThat(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7).getSchema(stream).validate(root)).isEmpty();
+        }
+    }
+
     private final CycloneDxCbomExporter exporter = new CycloneDxCbomExporter();
     private final CryptoInventoryEngine inventoryEngine = new CryptoInventoryEngine();
 

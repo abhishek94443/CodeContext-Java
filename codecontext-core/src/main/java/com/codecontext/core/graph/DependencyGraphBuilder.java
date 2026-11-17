@@ -11,7 +11,7 @@ import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import java.util.*;
 
 /**
- * Builds an in-memory JGraphT directed multigraph from Phase 1 compilation units.
+ * Builds an in-memory JGraphT directed weighted graph with aggregated call edges from Phase 1 compilation units.
  * Adheres to ADR-005: Directed edge U -> V denotes 'U invokes V' (Caller -> Callee).
  */
 public class DependencyGraphBuilder {

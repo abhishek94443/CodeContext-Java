@@ -1,0 +1,333 @@
+### CodeContext Pull Request Blast Radius & Architecture Check
+
+| Metric | Value |
+|---|---|
+| **Status** | Blocked (Cycles Detected) |
+| **Modified Classes Touched** | `69` |
+| **Total Impacted Callers (Blast Radius)** | `224` |
+| **Architectural Cycles** | `12` cycle(s) detected |
+
+#### Touched Classes & Blast Radius
+- `com.google.gson.interceptors.Intercept`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.interceptors.JsonPostDeserializer`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.GsonBuilder`
+  - Direct Callers (In-degree: 72)
+  - Transitive Blast Radius: `128` callers
+- `com.google.gson.JsonDeserializer`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.JsonObject`
+  - Direct Callers (In-degree: 40)
+  - Transitive Blast Radius: `193` callers
+- `com.google.gson.JsonParseException`
+  - Direct Callers (In-degree: 13)
+  - Transitive Blast Radius: `98` callers
+- `com.google.gson.JsonSerializer`
+  - Direct Callers (In-degree: 4)
+  - Transitive Blast Radius: `4` callers
+- `com.google.gson.internal.LinkedTreeMap$EntrySet`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `43` callers
+- `com.google.gson.internal.LinkedTreeMap$Node`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `43` callers
+- `com.google.gson.internal.LinkedTreeMap$KeySet`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `43` callers
+- `com.google.gson.internal.LinkedTreeMap$LinkedTreeMapIterator`
+  - Direct Callers (In-degree: 2)
+  - Transitive Blast Radius: `2` callers
+- `com.google.gson.internal.LinkedTreeMap`
+  - Direct Callers (In-degree: 4)
+  - Transitive Blast Radius: `55` callers
+- `com.google.gson.internal.bind.JavaTimeTypeAdapters`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.stream.JsonReader`
+  - Direct Callers (In-degree: 78)
+  - Transitive Blast Radius: `203` callers
+- `com.google.gson.functional.CollectionTest`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.CollectionTest$CollectionWithoutNoArgsConstructor`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.CollectionTest$BigClass`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.functional.CollectionTest$SmallClass`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.functional.CollectionTest$HasArrayListField`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.CollectionTest$Entry`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.CollectionTest$ObjectWithWildcardCollection`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.DefaultTypeAdaptersTest$MyClassTypeAdapter`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `2` callers
+- `com.google.gson.functional.DefaultTypeAdaptersTest$ClassWithBigDecimal`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `2` callers
+- `com.google.gson.functional.DefaultTypeAdaptersTest`
+  - Direct Callers (In-degree: 2)
+  - Transitive Blast Radius: `2` callers
+- `com.google.gson.functional.DefaultTypeAdaptersTest$ClassWithUrlField`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `2` callers
+- `com.google.gson.functional.DefaultTypeAdaptersTest$NumberAsStringAdapter`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `2` callers
+- `com.google.gson.functional.DefaultTypeAdaptersTest$ClassWithBigInteger`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `2` callers
+- `com.google.gson.functional.NamingPolicyTest$UpperCaseNamingStrategy`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.NamingPolicyTest$ClassWithDuplicateFields`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.NamingPolicyTest$AtName`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.NamingPolicyTest$ClassWithComplexFieldName`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.NamingPolicyTest$ClassWithTwoFields`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.NamingPolicyTest`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.ParameterizedTypesTest$Measurable`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.functional.ParameterizedTypesTest`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.ParameterizedTypesTest$Amount`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.ParameterizedTypesTest$MyQuantity`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.functional.ParameterizedTypesTest$MultiParameters`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.ParameterizedTypesTest$Field`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.functional.ParameterizedTypesTest$ObjectWithTypeVariables`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.ParameterizedTypesTest$Quantity`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.functional.ParameterizedTypesTest$Immutable`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.functional.PrimitiveTest$ClassWithIntegerField`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.functional.PrimitiveTest`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.SecurityTest`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.TypeHierarchyAdapterTest$EmployeeAdapter`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.TypeHierarchyAdapterTest$Company`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.TypeHierarchyAdapterTest$Manager`
+  - Direct Callers (In-degree: 3)
+  - Transitive Blast Radius: `3` callers
+- `com.google.gson.functional.TypeHierarchyAdapterTest`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.TypeHierarchyAdapterTest$CEO`
+  - Direct Callers (In-degree: 2)
+  - Transitive Blast Radius: `2` callers
+- `com.google.gson.functional.TypeHierarchyAdapterTest$ManagerAdapter`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.functional.TypeHierarchyAdapterTest$Employee`
+  - Direct Callers (In-degree: 2)
+  - Transitive Blast Radius: `2` callers
+- `com.google.gson.metrics.PerformanceTest$ClassWithListOfObjects`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.metrics.PerformanceTest`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.metrics.PerformanceTest$ClassWithExposedField`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.metrics.PerformanceTest$ExceptionHolder`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.metrics.PerformanceTest$ClassWithList`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.metrics.PerformanceTest$ClassWithField`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.metrics.PerformanceTest$CollectionEntry`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.stream.JsonWriterTest`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.protobuf.ProtoTypeAdapter$Builder`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `6` callers
+- `com.google.gson.protobuf.ProtoTypeAdapter`
+  - Direct Callers (In-degree: 6)
+  - Transitive Blast Radius: `6` callers
+- `com.google.gson.protobuf.ProtoTypeAdapter$EnumSerialization`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.protobuf.functional.LegacyProtoTypeAdapterFactoryTest$StringAdapter`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+- `com.google.gson.protobuf.functional.LegacyProtoTypeAdapterFactoryTest$OneofProvider`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.protobuf.functional.LegacyProtoTypeAdapterFactoryTest$LegacyCompatToRtafProvider`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.protobuf.functional.LegacyProtoTypeAdapterFactoryTest$RtafToLegacyCompatProvider`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.protobuf.functional.LegacyProtoTypeAdapterFactoryTest$TestMessagesProvider`
+  - Direct Callers (In-degree: 0)
+  - Transitive Blast Radius: `0` callers
+- `com.google.gson.protobuf.functional.LegacyProtoTypeAdapterFactoryTest`
+  - Direct Callers (In-degree: 1)
+  - Transitive Blast Radius: `1` callers
+
+#### Recommended Test Scope
+- `com.google.gson.CommentsTest`
+- `com.google.gson.DefaultInetAddressTypeAdapterTest`
+- `com.google.gson.DefaultMapJsonSerializerTest`
+- `com.google.gson.ExposeAnnotationExclusionStrategyTest`
+- `com.google.gson.GsonBuilderTest`
+- `com.google.gson.GsonTest`
+- `com.google.gson.GsonTypeAdapterTest`
+- `com.google.gson.InnerClassExclusionStrategyTest`
+- `com.google.gson.JavaSerializationTest`
+- `com.google.gson.JsonArrayTest`
+- `com.google.gson.JsonObjectAsMapTest`
+- `com.google.gson.JsonObjectTest`
+- `com.google.gson.JsonParserParameterizedTest`
+- `com.google.gson.JsonParserTest`
+- `com.google.gson.JsonPrimitiveTest`
+- `com.google.gson.JsonStreamParserTest`
+- `com.google.gson.LongSerializationPolicyTest`
+- `com.google.gson.MixedStreamTest`
+- `com.google.gson.ObjectTypeAdapterParameterizedTest`
+- `com.google.gson.ObjectTypeAdapterTest`
+- `com.google.gson.OverrideCoreTypeAdaptersTest`
+- `com.google.gson.SubsetTest`
+- `com.google.gson.ToNumberPolicyTest`
+- `com.google.gson.TypeAdapterTest`
+- `com.google.gson.VersionExclusionStrategyTest`
+- `com.google.gson.functional.ArrayTest`
+- `com.google.gson.functional.CircularReferenceTest`
+- `com.google.gson.functional.CollectionTest`
+- `com.google.gson.functional.ConcurrencyTest`
+- `com.google.gson.functional.CustomDeserializerTest`
+- `com.google.gson.functional.CustomSerializerTest`
+- `com.google.gson.functional.CustomTypeAdaptersTest`
+- `com.google.gson.functional.DefaultTypeAdaptersTest`
+- `com.google.gson.functional.DelegateTypeAdapterTest`
+- `com.google.gson.functional.EnumTest`
+- `com.google.gson.functional.EnumWithObfuscatedTest`
+- `com.google.gson.functional.EscapingTest`
+- `com.google.gson.functional.ExclusionStrategyFunctionalTest`
+- `com.google.gson.functional.ExposeFieldsTest`
+- `com.google.gson.functional.FieldExclusionTest`
+- `com.google.gson.functional.FieldNamingTest`
+- `com.google.gson.functional.FormattingStyleTest`
+- `com.google.gson.functional.GsonVersionDiagnosticsTest`
+- `com.google.gson.functional.InheritanceTest`
+- `com.google.gson.functional.InstanceCreatorTest`
+- `com.google.gson.functional.InterfaceTest`
+- `com.google.gson.functional.InternationalizationTest`
+- `com.google.gson.functional.Java17RecordTest`
+- `com.google.gson.functional.JavaUtilConcurrentAtomicTest`
+- `com.google.gson.functional.JavaUtilTest`
+- `com.google.gson.functional.JsonAdapterAnnotationOnClassesTest`
+- `com.google.gson.functional.JsonAdapterAnnotationOnFieldsTest`
+- `com.google.gson.functional.JsonAdapterSerializerDeserializerTest`
+- `com.google.gson.functional.JsonParserTest`
+- `com.google.gson.functional.JsonTreeTest`
+- `com.google.gson.functional.LeniencyTest`
+- `com.google.gson.functional.MapAsArrayTypeAdapterTest`
+- `com.google.gson.functional.MapTest`
+- `com.google.gson.functional.MoreSpecificTypeSerializationTest`
+- `com.google.gson.functional.NamingPolicyTest`
+- `com.google.gson.functional.NullObjectAndFieldTest`
+- `com.google.gson.functional.NumberLimitsTest`
+- `com.google.gson.functional.ObjectTest`
+- `com.google.gson.functional.ParameterizedTypesTest`
+- `com.google.gson.functional.PrettyPrintingTest`
+- `com.google.gson.functional.PrimitiveCharacterTest`
+- `com.google.gson.functional.PrimitiveTest`
+- `com.google.gson.functional.PrintFormattingTest`
+- `com.google.gson.functional.RawSerializationTest`
+- `com.google.gson.functional.ReadersWritersTest`
+- `com.google.gson.functional.ReflectionAccessFilterTest`
+- `com.google.gson.functional.ReflectionAccessTest`
+- `com.google.gson.functional.ReusedTypeVariablesFullyResolveTest`
+- `com.google.gson.functional.RuntimeTypeAdapterFactoryFunctionalTest`
+- `com.google.gson.functional.SecurityTest`
+- `com.google.gson.functional.SerializedNameTest`
+- `com.google.gson.functional.StreamingTypeAdaptersTest`
+- `com.google.gson.functional.StringTest`
+- `com.google.gson.functional.ToNumberPolicyFunctionalTest`
+- `com.google.gson.functional.TreeTypeAdaptersTest`
+- `com.google.gson.functional.TypeAdapterPrecedenceTest`
+- `com.google.gson.functional.TypeAdapterRuntimeTypeWrapperTest`
+- `com.google.gson.functional.TypeHierarchyAdapterTest`
+- `com.google.gson.functional.TypeVariableTest`
+- `com.google.gson.functional.UncategorizedTest`
+- `com.google.gson.functional.VersioningTest`
+- `com.google.gson.interceptors.InterceptorTest`
+- `com.google.gson.internal.LinkedTreeMapTest`
+- `com.google.gson.internal.StreamsTest`
+- `com.google.gson.internal.bind.DefaultDateTypeAdapterTest`
+- `com.google.gson.internal.bind.Java17ReflectiveTypeAdapterFactoryTest`
+- `com.google.gson.internal.bind.JsonElementReaderTest`
+- `com.google.gson.internal.bind.JsonTreeReaderTest`
+- `com.google.gson.internal.bind.JsonTreeWriterTest`
+- `com.google.gson.internal.bind.RecursiveTypesResolveTest`
+- `com.google.gson.internal.sql.SqlTypesGsonTest`
+- `com.google.gson.jpms_test.ExportedPackagesTest`
+- `com.google.gson.jpms_test.ReflectionInaccessibleTest`
+- `com.google.gson.jpms_test.opened.ReflectionTest`
+- `com.google.gson.metrics.PerformanceTest`
+- `com.google.gson.native_test.Java17RecordReflectionTest`
+- `com.google.gson.native_test.ReflectionTest`
+- `com.google.gson.protobuf.functional.LegacyProtoTypeAdapterFactoryTest`
+- `com.google.gson.protobuf.functional.ProtosWithAnnotationsAndJsonNamesTest`
+- `com.google.gson.protobuf.functional.ProtosWithAnnotationsTest`
+- `com.google.gson.protobuf.functional.ProtosWithComplexAndRepeatedFieldsTest`
+- `com.google.gson.protobuf.functional.ProtosWithPrimitiveTypesTest`
+- `com.google.gson.protobuf.functional.StructTypeAdapterTest`
+- `com.google.gson.stream.JsonReaderPathTest`
+- `com.google.gson.stream.JsonReaderTest`
+- `com.google.gson.stream.JsonWriterTest`
+- `com.google.gson.typeadapters.PostConstructAdapterFactoryTest`
+- `com.google.gson.typeadapters.RuntimeTypeAdapterFactoryTest`
+- `com.google.gson.typeadapters.UtcDateTypeAdapterTest`

@@ -111,7 +111,9 @@ class CryptoInventoryEngineTest {
         CryptoInventory inventory = engine.buildInventory(List.of(usage), Path.of("."));
 
         CryptoAsset asset = inventory.assets().get(0);
-        assertThat(asset.assetId()).isEqualTo("crypto-asset-sha-256");
+        CryptoAsset relocated = engine.buildInventory(List.of(createUsage(Path.of("other/App.java"),
+                42, 9, CryptoApiOwner.MESSAGE_DIGEST, "sha-256")), Path.of("other")).assets().get(0);
+        assertThat(asset.assetId()).isEqualTo(relocated.assetId()).startsWith("crypto-asset-");
         assertThat(asset.assetId()).doesNotContain("\\");
         assertThat(asset.assetId()).doesNotContain(":");
     }

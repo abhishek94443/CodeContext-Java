@@ -50,6 +50,7 @@ reports/
 temp_repos/
 *.sarif
 .codecontext-plan.json
+remediation-output/
 
 # Internal Development & Proprietary Roadmap Artifacts
 # (Retained locally; not published to public repositories)

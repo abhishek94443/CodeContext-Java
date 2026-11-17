@@ -20,7 +20,7 @@ import java.util.UUID;
 
 /**
  * Exporter generating standardized CycloneDX 1.6 Cryptography Bill of Materials (CBOM).
- * Conforms to the official CycloneDX 1.6 JSON Schema specification and cryptographic asset models.
+ * Regression fixtures are validated against the pinned CycloneDX 1.6 JSON schema.
  */
 public class CycloneDxCbomExporter {
 
@@ -110,18 +110,20 @@ public class CycloneDxCbomExporter {
 
             // Native CycloneDX 1.6 cryptoProperties
             ObjectNode cryptoProps = comp.putObject("cryptoProperties");
-            String assetType = asset.primitiveType().cycloneDxName().equals("protocol") ? "protocol" : "algorithm";
-            cryptoProps.put("assetType", assetType);
-
-            ObjectNode algoProps = cryptoProps.putObject("algorithmProperties");
-            algoProps.put("primitive", asset.primitiveType().cycloneDxName());
-
-            asset.mode().ifPresent(m -> algoProps.put("mode", normalizeMode(m)));
-            asset.padding().ifPresent(p -> algoProps.put("padding", normalizePadding(p)));
-
-            ArrayNode cryptoFunctions = algoProps.putArray("cryptoFunctions");
-            for (String func : determineCryptoFunctions(asset)) {
-                cryptoFunctions.add(func);
+            boolean protocol = asset.primitiveType() == com.codecontext.core.security.inventory.CryptoPrimitiveType.TLS_PROTOCOL;
+            cryptoProps.put("assetType", protocol ? "protocol" : "algorithm");
+            if (protocol) {
+                ObjectNode protocolProps = cryptoProps.putObject("protocolProperties");
+                protocolProps.put("type", "tls");
+                if (asset.name().matches("(?i)TLSv[0-9]+(\\.[0-9]+)?"))
+                    protocolProps.put("version", asset.name().substring(4));
+            } else {
+                ObjectNode algoProps = cryptoProps.putObject("algorithmProperties");
+                algoProps.put("primitive", asset.primitiveType().cycloneDxName());
+                asset.mode().ifPresent(m -> algoProps.put("mode", normalizeMode(m)));
+                asset.padding().ifPresent(p -> algoProps.put("padding", normalizePadding(p)));
+                ArrayNode cryptoFunctions = algoProps.putArray("cryptoFunctions");
+                for (String func : determineCryptoFunctions(asset)) cryptoFunctions.add(func);
             }
 
             // Evidence (Occurrences)
@@ -186,10 +188,10 @@ public class CycloneDxCbomExporter {
             case MESSAGE_DIGEST -> new String[]{"digest"};
             case SIGNATURE -> new String[]{"sign", "verify"};
             case MAC -> new String[]{"tag", "digest"};
-            case KEY_AGREEMENT -> new String[]{"key-agree"};
+            case KEY_AGREEMENT -> new String[]{"other"};
             case KEY_GENERATOR, KEY_PAIR_GENERATOR -> new String[]{"generate"};
             case SECURE_RANDOM -> new String[]{"generate"};
-            case TLS_PROTOCOL -> new String[]{"protocol"};
+            case TLS_PROTOCOL -> new String[]{};
             case OTHER -> new String[]{"other"};
         };
     }

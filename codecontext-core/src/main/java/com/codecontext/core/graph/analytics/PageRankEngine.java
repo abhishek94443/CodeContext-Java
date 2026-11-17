@@ -63,7 +63,8 @@ public class PageRankEngine {
             if (n == 1 || (maxScore - minScore < 1e-9)) {
                 percentile = 100.0;
             } else {
-                percentile = 100.0 * (raw - minScore) / (maxScore - minScore);
+                percentile = Math.max(0.0, Math.min(100.0,
+                        100.0 * (raw - minScore) / (maxScore - minScore)));
             }
 
             int inDegree = graph.inDegreeOf(vertex);

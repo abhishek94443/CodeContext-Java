@@ -44,7 +44,7 @@ public class BlastRadiusEngine {
         // 1-hop direct callers
         for (DependencyEdge edge : reversedGraph.outgoingEdgesOf(target)) {
             TypeVertex caller = reversedGraph.getEdgeTarget(edge);
-            directCallers.add(caller.fqcn());
+            if (!caller.equals(target)) directCallers.add(caller.fqcn());
         }
 
         // BFS traversal for transitive blast radius with visited guard against circular calls
@@ -53,6 +53,7 @@ public class BlastRadiusEngine {
 
         for (DependencyEdge edge : reversedGraph.outgoingEdgesOf(target)) {
             TypeVertex caller = reversedGraph.getEdgeTarget(edge);
+            if (caller.equals(target)) continue;
             queue.add(caller);
             depthMap.put(caller, 1);
             transitiveCallerDepths.put(caller.fqcn(), 1);

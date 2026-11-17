@@ -30,7 +30,7 @@ import java.util.*;
 /**
  * Pass 2 Invocation Resolver.
  * Performs AST body traversal, tracks lexical scope, resolves method/constructor call targets
- * via the 6-step Chain of Responsibility, and emits complete ParsedCompilationUnit records.
+ * via the five-handler Chain of Responsibility, and emits complete ParsedCompilationUnit records.
  */
 public class Pass2InvocationResolver {
 
@@ -117,6 +117,7 @@ public class Pass2InvocationResolver {
                 sameFileTypes,
                 explicitImports,
                 wildcardImports,
+                path,
                 invocations
         );
 
@@ -124,9 +125,10 @@ public class Pass2InvocationResolver {
 
         int total = invocations.size();
         int internal = (int) invocations.stream().filter(InvocationReference::isResolvedLocally).count();
-        int external = total - internal;
+        int unresolved = visitor.unresolvedCount;
+        int external = total - internal - unresolved;
 
-        ResolutionMetrics metrics = new ResolutionMetrics(total, internal, external, 0);
+        ResolutionMetrics metrics = new ResolutionMetrics(total, internal, external, unresolved);
 
         return new ParsedCompilationUnit(
                 path,
@@ -145,10 +147,12 @@ public class Pass2InvocationResolver {
         private final List<String> explicitImports;
         private final List<String> wildcardImports;
         private final List<InvocationReference> invocations;
+        private final Path sourcePath;
 
         private final LexicalScopeStack scopeStack = new LexicalScopeStack();
         private final Map<String, String> fieldTypes = new HashMap<>();
 
+        private int unresolvedCount;
         private String currentTypeFqcn = "";
         private String currentMethodName = "";
 
@@ -156,12 +160,14 @@ public class Pass2InvocationResolver {
                           Set<String> sameFileTypes,
                           List<String> explicitImports,
                           List<String> wildcardImports,
+                          Path sourcePath,
                           List<InvocationReference> invocations) {
             this.packageName = packageName;
             this.sameFileTypes = sameFileTypes;
             this.explicitImports = explicitImports;
             this.wildcardImports = wildcardImports;
             this.invocations = invocations;
+            this.sourcePath = sourcePath;
         }
 
         private ResolutionContext createContext(String targetName) {
@@ -184,35 +190,33 @@ public class Pass2InvocationResolver {
             return new SourceRange(1, 1, 1, 1);
         }
 
-        @Override
-        public void visit(ClassOrInterfaceDeclaration n, Void arg) {
-            String prevType = currentTypeFqcn;
-            currentTypeFqcn = packageName.isBlank() ? n.getNameAsString() : packageName + "." + n.getNameAsString();
-
-            for (FieldDeclaration field : n.getFields()) {
-                for (VariableDeclarator var : field.getVariables()) {
-                    fieldTypes.put(var.getNameAsString(), var.getTypeAsString());
-                }
+        private void visitType(TypeDeclaration<?> type, Runnable traversal) {
+            String previousType = currentTypeFqcn;
+            String previousMethod = currentMethodName;
+            Map<String, String> previousFields = new HashMap<>(fieldTypes);
+            currentTypeFqcn = previousType.isBlank()
+                    ? (packageName.isBlank() ? type.getNameAsString() : packageName + "." + type.getNameAsString())
+                    : previousType + "$" + type.getNameAsString();
+            currentMethodName = "";
+            fieldTypes.clear();
+            for (FieldDeclaration field : type.getFields())
+                for (VariableDeclarator variable : field.getVariables())
+                    fieldTypes.put(variable.getNameAsString(), variable.getTypeAsString());
+            scopeStack.push();
+            try { traversal.run(); }
+            finally {
+                scopeStack.pop();
+                fieldTypes.clear();
+                fieldTypes.putAll(previousFields);
+                currentTypeFqcn = previousType;
+                currentMethodName = previousMethod;
             }
-
-            super.visit(n, arg);
-            currentTypeFqcn = prevType;
         }
 
-        @Override
-        public void visit(RecordDeclaration n, Void arg) {
-            String prevType = currentTypeFqcn;
-            currentTypeFqcn = packageName.isBlank() ? n.getNameAsString() : packageName + "." + n.getNameAsString();
-
-            for (FieldDeclaration field : n.getFields()) {
-                for (VariableDeclarator var : field.getVariables()) {
-                    fieldTypes.put(var.getNameAsString(), var.getTypeAsString());
-                }
-            }
-
-            super.visit(n, arg);
-            currentTypeFqcn = prevType;
-        }
+        @Override public void visit(ClassOrInterfaceDeclaration n, Void arg) { visitType(n, () -> super.visit(n, arg)); }
+        @Override public void visit(RecordDeclaration n, Void arg) { visitType(n, () -> super.visit(n, arg)); }
+        @Override public void visit(EnumDeclaration n, Void arg) { visitType(n, () -> super.visit(n, arg)); }
+        @Override public void visit(AnnotationDeclaration n, Void arg) { visitType(n, () -> super.visit(n, arg)); }
 
         @Override
         public void visit(MethodDeclaration n, Void arg) {
@@ -260,7 +264,8 @@ public class Pass2InvocationResolver {
 
         @Override
         public void visit(VariableDeclarator n, Void arg) {
-            scopeStack.declare(n.getNameAsString(), n.getTypeAsString());
+            if (!(n.getParentNode().orElse(null) instanceof FieldDeclaration))
+                scopeStack.declare(n.getNameAsString(), n.getTypeAsString());
             super.visit(n, arg);
         }
 
@@ -346,6 +351,7 @@ public class Pass2InvocationResolver {
             String methodName = n.getNameAsString();
             String targetType = currentTypeFqcn;
             InvocationKind kind = InvocationKind.METHOD_CALL;
+            boolean unsupportedReceiver = false;
 
             if (n.getScope().isPresent()) {
                 Expression scope = n.getScope().get();
@@ -368,16 +374,43 @@ public class Pass2InvocationResolver {
                     }
                 } else {
                     targetType = scope.toString();
+                    unsupportedReceiver = scope.isMethodCallExpr() || scope.isObjectCreationExpr();
                 }
             }
 
-            ResolutionResult resolved = resolutionChain.resolve(createContext(targetType));
-
-            // Check if method is inherited on the resolved type
+            ResolutionResult resolved = symbolLookup.findByFqcn(targetType).isPresent()
+                    ? new ResolutionResult(targetType, true, "ExactType")
+                    : resolutionChain.resolve(createContext(targetType));
             String finalTargetFqcn = resolved.resolvedFqcn();
-            if (resolved.isResolvedLocally()) {
-                Optional<MethodDefinition> inheritedMethod = hierarchyIndex.findMethodInHierarchy(finalTargetFqcn, methodName);
-                // If found in hierarchy and belongs to an ancestor, update target to declaring ancestor
+            String signature = methodName + "(?)";
+            if (unsupportedReceiver) {
+                unresolvedCount++;
+                finalTargetFqcn = "<unresolved>:" + targetType;
+            } else if (resolved.isResolvedLocally()) {
+                // Only uniquely named methods in a known superclass chain are supported.
+                // No overload selection, generic inference, or dynamic dispatch is claimed.
+                Set<String> seen = new HashSet<>();
+                String candidate = finalTargetFqcn;
+                while (seen.add(candidate) && seen.size() <= 20) {
+                    var definition = symbolLookup.findByFqcn(candidate);
+                    if (definition.isEmpty()) break;
+                    var methods = definition.get().methods().stream().filter(m -> m.name().equals(methodName)).toList();
+                    if (!methods.isEmpty()) {
+                        if (methods.size() == 1 && methods.get(0).parameterTypes().size() == n.getArguments().size()) {
+                            finalTargetFqcn = candidate;
+                            signature = methods.get(0).signature();
+                        }
+                        break;
+                    }
+                    // Imports for other compilation units are not available here.
+                    if (!definition.get().sourceFilePath().equals(sourcePath)) break;
+                    var parent = hierarchyIndex.findDirectSuperclass(candidate);
+                    if (parent.isEmpty()) break;
+                    String parentName = parent.get();
+                    candidate = parentName.contains(".") ? parentName
+                            : explicitImports.stream().filter(i -> i.endsWith("." + parentName)).findFirst()
+                                .orElseGet(() -> resolutionChain.resolve(createContext(parentName)).resolvedFqcn());
+                }
             }
 
             invocations.add(new InvocationReference(
@@ -385,10 +418,10 @@ public class Pass2InvocationResolver {
                     currentMethodName,
                     finalTargetFqcn,
                     methodName,
-                    methodName + "()",
+                    signature,
                     kind,
                     extractRange(n),
-                    resolved.isResolvedLocally()
+                    resolved.isResolvedLocally() && !unsupportedReceiver
             ));
 
             super.visit(n, arg);

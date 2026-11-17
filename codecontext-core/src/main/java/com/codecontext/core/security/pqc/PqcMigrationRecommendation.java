@@ -39,7 +39,7 @@ public record PqcMigrationRecommendation(
                 parameterSet,
                 parameterSet.orElse("Category 1, 3, or 5 depending on security requirements"),
                 rationale,
-                "Implement hybrid key agreement (e.g. X25519 + ML-KEM-768) where protocol support exists during transition."
+                "Evaluate hybrid key establishment where protocol support exists; select parameters from application requirements."
         );
     }
 
@@ -59,7 +59,7 @@ public record PqcMigrationRecommendation(
         return new PqcMigrationRecommendation(
                 "NIST FIPS 203 (Architecture Redesign)",
                 "KEM/DEM Hybrid Architecture (ML-KEM + Symmetric AEAD)",
-                List.of("ML-KEM-768 + AES-256-GCM"),
+                List.of("ML-KEM + symmetric AEAD (parameters require review)"),
                 Optional.empty(),
                 "Requires application redesign; ML-KEM is not a drop-in Cipher replacement",
                 rationale,
@@ -84,7 +84,7 @@ public record PqcMigrationRecommendation(
                 "NIST SP 800-175B",
                 "Symmetric Key Size Hardening",
                 List.of("AES-256-GCM"),
-                Optional.of("AES-256"),
+                Optional.empty(),
                 "128-bit Post-Quantum Security Level against Grover Search",
                 rationale,
                 "Enforce minimum 256-bit symmetric key length to guarantee at least 128-bit post-quantum security."

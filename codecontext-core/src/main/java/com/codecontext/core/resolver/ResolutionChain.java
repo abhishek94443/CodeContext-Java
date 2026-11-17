@@ -3,8 +3,8 @@ package com.codecontext.core.resolver;
 import java.util.*;
 
 /**
- * Orchestrates the 6-step Chain of Responsibility for type and invocation resolution.
- * Enforces strict JLS resolution precedence:
+ * Orchestrates the five-handler Chain of Responsibility for type and invocation resolution.
+ * Uses approximate source-name lookup precedence (not compiler-equivalent):
  * 1. Same File (including inner/nested classes)
  * 2. Same Package (takes precedence over wildcard imports per JLS)
  * 3. Explicit Single-Type Imports

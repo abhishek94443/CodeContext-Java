@@ -260,10 +260,11 @@ public class CryptoInventoryEngine {
     }
 
     private String generateStableAssetId(CanonicalAssetDescriptor desc) {
-        String slug = desc.canonicalName().toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("^-|-$", "");
-        return "crypto-asset-" + slug;
+        // Encode the complete canonical grouping identity, including API operation. Hex is
+        // injective (unlike lossy slugs) and independent of paths, locale, and traversal order.
+        String identity = java.util.HexFormat.of().formatHex(desc.groupKey()
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return "crypto-asset-" + identity;
     }
 
     private Path normalizeRelativePath(Path path, Path repoRoot) {

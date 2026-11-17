@@ -194,7 +194,7 @@ public class PqcMigrationEngine {
         }
 
         if (asset.primitiveType() == CryptoPrimitiveType.TLS_PROTOCOL) {
-            return QuantumExposureLevel.QUANTUM_VULNERABLE; // TLS configurations depend on classical key exchange
+            return QuantumExposureLevel.UNKNOWN; // SSLContext identifier does not establish negotiated key exchange
         }
 
         return QuantumExposureLevel.UNKNOWN;
@@ -252,6 +252,10 @@ public class PqcMigrationEngine {
             return PqcMigrationRecommendation.none("Algorithm is dynamic or unresolvable at compile time. Resolve call site before planning PQC migration.");
         }
 
+        if (purpose == CryptoPurpose.SECURE_TRANSPORT) {
+            return PqcMigrationRecommendation.none("TLS protocol selection does not identify key establishment, certificates, or negotiated groups. Inspect runtime configuration before choosing migration algorithms or parameter sets.");
+        }
+
         if (exposure == QuantumExposureLevel.CLASSICALLY_WEAK) {
             return PqcMigrationRecommendation.classicalRemediation(
                     asset.algorithmFamily(),
@@ -282,17 +286,7 @@ public class PqcMigrationEngine {
                         "KeyPairGenerator for " + asset.name() + " generates classical asymmetric keys vulnerable to Shor's algorithm. Intended application usage (signature vs key exchange vs encryption) is undetermined at this key generation site. Do not assume ML-KEM without establishing key usage."
                 );
             }
-            if (purpose == CryptoPurpose.SECURE_TRANSPORT) {
-                return new PqcMigrationRecommendation(
-                        "TLS 1.3 RFC 8446 / Hybrid PQC",
-                        "Post-Quantum TLS Key Exchange & Certificates",
-                        List.of("X25519MLKEM768", "SecP256r1MLKEM768"),
-                        Optional.of("X25519MLKEM768"),
-                        "Category 3",
-                        "TLS transport security relies on quantum-vulnerable key exchange. Upgrade to TLS 1.3 with hybrid post-quantum key encapsulation.",
-                        "Configure TLS trust manager and cipher suites to support hybrid ML-KEM key exchange."
-                );
-            }
+
         }
 
         if (exposure == QuantumExposureLevel.QUANTUM_IMPACTED) {
@@ -361,6 +355,7 @@ public class PqcMigrationEngine {
         Set<String> transitiveOnlyCallers = new LinkedHashSet<>();
         List<String> affectedUnits = new ArrayList<>();
         double cumulativeRisk = 0.0;
+        Map<String, Integer> minimumCallerDepths = new LinkedHashMap<>();
         int maxDepthObserved = 0;
         boolean hasSharedUtility = false;
 
@@ -407,7 +402,15 @@ public class PqcMigrationEngine {
                     transitiveOnlyCallers.add(caller);
                 }
             }
-            cumulativeRisk += impact.cumulativeRisk();
+            impact.transitiveCallerDepths().forEach((caller, depth) -> minimumCallerDepths.merge(caller, depth, Math::min));
+        }
+
+        maxDepthObserved = 0;
+        for (var entry : minimumCallerDepths.entrySet()) {
+            var metric = metrics == null ? null : metrics.get(entry.getKey());
+            double rawScore = metric == null ? 0.01 : metric.rawScore();
+            cumulativeRisk += rawScore / Math.pow(2.0, entry.getValue() - 1);
+            maxDepthObserved = Math.max(maxDepthObserved, entry.getValue());
         }
 
         // Strictly ensure transitive-only callers do not include any direct caller
@@ -438,6 +441,8 @@ public class PqcMigrationEngine {
         if (asset.name().toUpperCase(Locale.ROOT).contains("SHA1PRNG") || asset.algorithmFamily().equalsIgnoreCase("SHA1PRNG")) {
             return "SHA1PRNG security depends on the runtime security provider and seeding mechanism. The Sun/Oracle JDK provider securely seeds from OS entropy (/dev/urandom or Windows CryptoAPI) and is not broken; however, legacy Android Apache Harmony implementations had critical state-replacement flaws. Provider verification is required.";
         }
+
+        if (purpose == CryptoPurpose.SECURE_TRANSPORT) return "TLS key establishment is not observable from the SSLContext algorithm name; quantum exposure is unknown.";
 
         return switch (exposure) {
             case QUANTUM_VULNERABLE -> "Shor's polynomial-time algorithm completely undermines " + asset.algorithmFamily() +

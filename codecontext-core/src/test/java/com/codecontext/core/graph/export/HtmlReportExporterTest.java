@@ -71,7 +71,7 @@ class HtmlReportExporterTest {
         assertThat(content).contains("OrderController");
         assertThat(content).contains("OrderService");
         // Typography tokens and fonts per UI specification
-        assertThat(content).contains("fonts.googleapis.com");
+        assertThat(content).doesNotContain("fonts.googleapis.com");
         assertThat(content).contains("JetBrains Mono");
         assertThat(content).contains("Inter");
     }

@@ -101,10 +101,12 @@ public class CryptoPqcCommand implements Callable<Integer> {
         // 2. Build Dependency Graph for Blast Radius Traversal
         DefaultDirectedWeightedGraph<TypeVertex, DependencyEdge> graph = null;
         Map<String, HotspotMetric> metrics = null;
+        String graphAnalysisError = null;
         try {
             ConcurrentSymbolTable symbolTable = new ConcurrentSymbolTable();
             BoundedPass1Scanner scanner = new BoundedPass1Scanner();
-            scanner.scan(resolvedPath, symbolTable, includeTests);
+            var scanSummary = scanner.scan(resolvedPath, symbolTable, includeTests);
+                    if (!scanSummary.failedFiles().isEmpty()) throw new java.io.IOException("Source parsing failed: " + scanSummary.failedFiles().size() + " files");
 
             TypeHierarchyIndex hierarchyIndex = new TypeHierarchyIndex(symbolTable);
             symbolTable.allTypes().forEach(hierarchyIndex::index);
@@ -120,6 +122,7 @@ public class CryptoPqcCommand implements Callable<Integer> {
             for (Path f : javaFiles) {
                 String source = Files.readString(f);
                 ParsedCompilationUnit rawUnit = resolver.resolve(f, source);
+                        if (!rawUnit.parseErrors().isEmpty()) throw new java.io.IOException("Parse errors in " + f.getFileName());
                 List<TypeDefinition> typesInFile = symbolTable.allTypes().stream()
                         .filter(t -> t.sourceFilePath().equals(f))
                         .toList();
@@ -141,8 +144,11 @@ public class CryptoPqcCommand implements Callable<Integer> {
             PageRankEngine prEngine = new PageRankEngine();
             List<HotspotMetric> hotspots = prEngine.compute(graph, PageRankOptions.defaults());
             metrics = hotspots.stream().collect(Collectors.toMap(HotspotMetric::fqcn, h -> h, (a, b) -> a));
-        } catch (Exception ignored) {
-            // Graceful fallback to null graph when repository cannot be parsed as a full Java project
+        } catch (Exception failure) {
+            graph = null;
+            metrics = null;
+            graphAnalysisError = "Graph analysis incomplete: " + failure.getMessage();
+            err.println(graphAnalysisError);
         }
 
         // 3. Execute PQC Migration Engine
@@ -155,7 +161,7 @@ public class CryptoPqcCommand implements Callable<Integer> {
         }
 
         if ("json".equals(resolvedFormat)) {
-            String jsonOutput = serializeJsonReport(report, analysisResult.filesScanned(), resolvedPath);
+            String jsonOutput = serializeJsonReport(report, analysisResult.filesScanned(), resolvedPath, graphAnalysisError);
             if (outputFile != null) {
                 Path target = outputFile.isAbsolute() ? outputFile : resolvedPath.resolve(outputFile);
                 if (target.getParent() != null) {
@@ -191,10 +197,12 @@ public class CryptoPqcCommand implements Callable<Integer> {
         return CliExitCode.SUCCESS.getCode();
     }
 
-    private String serializeJsonReport(PqcAssessmentReport report, int filesScanned, Path repoRoot) throws Exception {
+    private String serializeJsonReport(PqcAssessmentReport report, int filesScanned, Path repoRoot, String graphAnalysisError) throws Exception {
         ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         ObjectNode root = mapper.createObjectNode();
 
+        root.put("graphAnalysisStatus", graphAnalysisError == null ? "complete" : "unavailable");
+        if (graphAnalysisError != null) root.put("graphAnalysisError", graphAnalysisError);
         ObjectNode summaryNode = root.putObject("summary");
         summaryNode.put("filesScanned", filesScanned);
         summaryNode.put("totalAssets", report.totalAssetsAnalyzed());

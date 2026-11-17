@@ -93,7 +93,7 @@ public class JavaParserDeclarationVisitor {
 
         if (typeDecl instanceof ClassOrInterfaceDeclaration cid) {
             if (!cid.isInterface() && !cid.getExtendedTypes().isEmpty()) {
-                superclass = Optional.of(cid.getExtendedTypes(0).getNameAsString());
+                superclass = Optional.of(cid.getExtendedTypes(0).getNameWithScope());
             }
             if (cid.isInterface()) {
                 cid.getExtendedTypes().forEach(et -> interfaces.add(et.getNameAsString()));

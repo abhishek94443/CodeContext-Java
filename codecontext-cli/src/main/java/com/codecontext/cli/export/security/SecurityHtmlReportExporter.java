@@ -556,6 +556,7 @@ public class SecurityHtmlReportExporter {
 
     <!-- SECTION F: ANALYSIS LIMITATIONS TAB -->
     <div id="tab-limitations" class="tab-content">
+        {{ANALYSIS_ERRORS}}
         <div class="limitations-box">
             <h3>Static Cryptographic Analysis Scope & Boundaries</h3>
             <ul>
@@ -1399,6 +1400,8 @@ public class SecurityHtmlReportExporter {
 """;
 
         return template
+                .replace("{{ANALYSIS_ERRORS}}", payload.analysisResult().analysisErrors().stream()
+                        .map(e -> "<p>" + escapeHtml(e) + "</p>").collect(java.util.stream.Collectors.joining()))
                 .replace("{{SCANNER_VERSION}}", escapeHtml(payload.scannerVersion()))
                 .replace("{{REPOSITORY_NAME}}", escapeHtml(payload.repositoryName()))
                 .replace("{{FORMATTED_TIMESTAMP}}", escapeHtml(formattedTimestamp))

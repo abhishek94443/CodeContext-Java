@@ -388,7 +388,6 @@ public class HtmlReportExporter {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CodeContext \u00b7 Architecture Report</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ============ 1. TOKENS (see UI-SPEC.md \u00a72) ============ */
 :root {
@@ -1400,7 +1399,7 @@ function renderCallsLens(c) {
   $('trace-panel').innerHTML = `
     <div class="trace-header mono" id="trace-toggle-btn">
       <span style="font-weight:600;display:flex;align-items:center;gap:6px;">
-        <span>⚘</span> Trace Execution Path ${state.traceTarget ? `<span class="mono" style="color:var(--accent);font-size:12px;">→ ${escapeXml(targetLabel)}</span>` : ''}
+        <span>⚘</span> Trace Dependency Path ${state.traceTarget ? `<span class="mono" style="color:var(--accent);font-size:12px;">→ ${escapeXml(targetLabel)}</span>` : ''}
       </span>
       <span id="trace-toggle-icon" style="font-size:11px;color:var(--muted);">${state.traceExpanded ? '▲ Hide' : '▼ Expand'}</span>
     </div>
@@ -1632,7 +1631,7 @@ function renderLoops() {
       </div>
       <div style="margin-top:14px;padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-size:12.5px;line-height:1.5;color:var(--muted);">
         <b style="color:var(--text);">Architectural Decoupling Advice:</b><br/>
-        The cycle completes because <b style="color:var(--text)">${escapeXml(steps[weakestIdx].fromId)}</b> connects to <b style="color:var(--text)">${escapeXml(steps[weakestIdx].toId)}</b> with only <b>${steps[weakestIdx].calls} ${steps[weakestIdx].calls === 1 ? 'call' : 'calls'}</b>. Decoupling this single link (e.g. by introducing an interface or event listener) will permanently eliminate this cyclic coupling for all ${names.length} classes.
+        The cycle completes because <b style="color:var(--text)">${escapeXml(steps[weakestIdx].fromId)}</b> connects to <b style="color:var(--text)">${escapeXml(steps[weakestIdx].toId)}</b> with only <b>${steps[weakestIdx].calls} ${steps[weakestIdx].calls === 1 ? 'call' : 'calls'}</b>. Decoupling this single link (e.g. by introducing an interface or event listener) breaks this displayed cycle; other cycles may remain among these ${names.length} classes.
       </div>
     </div>`;
 

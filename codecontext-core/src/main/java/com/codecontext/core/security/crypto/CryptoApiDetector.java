@@ -72,13 +72,7 @@ public final class CryptoApiDetector {
         Map<String, String> properties = new HashMap<>();
         properties.put("scope", scopeOpt.map(Expression::toString).orElse("<static-import>"));
         call.findAncestor(TypeDeclaration.class).ifPresent(t -> {
-            @SuppressWarnings("unchecked")
-            Optional<String> fqOpt = ((TypeDeclaration<?>) t).getFullyQualifiedName();
-            String fqcn = fqOpt.orElseGet(() -> {
-                String pkg = cu.getPackageDeclaration().map(p -> p.getNameAsString() + ".").orElse("");
-                return pkg + t.getNameAsString();
-            });
-            properties.put("enclosingClass", fqcn);
+            properties.put("enclosingClass", binaryTypeName((TypeDeclaration<?>) t));
         });
         call.findAncestor(MethodDeclaration.class).ifPresent(m -> {
             properties.put("enclosingMethod", m.getNameAsString());
@@ -140,13 +134,7 @@ public final class CryptoApiDetector {
         Map<String, String> properties = new HashMap<>();
         properties.put("constructor", "true");
         creation.findAncestor(TypeDeclaration.class).ifPresent(t -> {
-            @SuppressWarnings("unchecked")
-            Optional<String> fqOpt = ((TypeDeclaration<?>) t).getFullyQualifiedName();
-            String fqcn = fqOpt.orElseGet(() -> {
-                String pkg = cu.getPackageDeclaration().map(p -> p.getNameAsString() + ".").orElse("");
-                return pkg + t.getNameAsString();
-            });
-            properties.put("enclosingClass", fqcn);
+            properties.put("enclosingClass", binaryTypeName((TypeDeclaration<?>) t));
         });
         creation.findAncestor(MethodDeclaration.class).ifPresent(m -> {
             properties.put("enclosingMethod", m.getNameAsString());
@@ -313,6 +301,18 @@ public final class CryptoApiDetector {
                 .map(PackageDeclaration::getNameAsString)
                 .map(p -> p.equals(packageName))
                 .orElse(false);
+    }
+
+    private static String binaryTypeName(TypeDeclaration<?> type) {
+        List<String> names = new ArrayList<>();
+        com.github.javaparser.ast.Node node = type;
+        while (node != null) {
+            if (node instanceof TypeDeclaration<?> enclosing) names.add(0, enclosing.getNameAsString());
+            node = node.getParentNode().orElse(null);
+        }
+        String pkg = type.findCompilationUnit().flatMap(CompilationUnit::getPackageDeclaration)
+                .map(p -> p.getNameAsString() + ".").orElse("");
+        return pkg + String.join("$", names);
     }
 
     private record OwnerResolution(CryptoApiOwner owner, AnalysisConfidence confidence) {}

@@ -156,9 +156,9 @@ public class CycleDetectionEngine {
     }
 
     private boolean isDuplicateCycle(List<CyclePath> detected, List<String> fqcns) {
-        Set<String> set = new HashSet<>(fqcns);
+        // DFS starts at the lexicographically smallest vertex, so rotation is already canonical.
         for (CyclePath existing : detected) {
-            if (existing.fqcns().size() == fqcns.size() && new HashSet<>(existing.fqcns()).equals(set)) {
+            if (existing.fqcns().equals(fqcns)) {
                 return true;
             }
         }
